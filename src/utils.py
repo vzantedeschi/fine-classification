@@ -19,6 +19,7 @@ class TileExtractor(object):
         image : tuple of numpy arrays or masked arrays of shape (., width, height, ...)
 
         """
+
         img_width = image[0].shape[1]
         img_height = image[0].shape[2]
 

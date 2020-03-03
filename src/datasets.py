@@ -53,6 +53,7 @@ def read_npz(npz_file):
 
     return file['radiances'], file['properties'], file['cloud_mask'], file['labels']
 
+
 class CumuloDataset(Dataset):
 
     def __init__(self, root_dir, normalizer=None, ext="npz"):
@@ -84,7 +85,7 @@ class CumuloDataset(Dataset):
         if self.normalizer is not None:
             radiances = self.normalizer(radiances)
 
-        return radiances, properties, rois, labels
+        return filename, radiances, properties, rois, labels
 
     def __str__(self):
         return 'CUMULO'
