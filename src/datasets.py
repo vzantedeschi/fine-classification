@@ -42,8 +42,8 @@ def read_nc(nc_file):
 
     f_radiances = np.vstack([file.variables[name][:] for name in radiances])
     f_properties = np.vstack([file.variables[name][:] for name in properties])
-    f_rois = file.variables[rois][0]
-    f_labels = file.variables[labels][0]
+    f_rois = file.variables[rois][:]
+    f_labels = file.variables[labels][:]
 
     return f_radiances, f_properties, f_rois, f_labels
 
