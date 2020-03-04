@@ -28,8 +28,8 @@ for instance in dataset:
     name = os.path.basename(name).replace(".nc", "")
 
     labels = load_labels(label_path, name)
-
-    tiles, locations = extractor((*image, labels[None, ]))
+    
+    tiles, locations = extractor((*image, labels.T[None, ]))
 
     for i, (tile, loc) in enumerate(zip(tiles, locations)):
 
