@@ -1,9 +1,21 @@
 import math
+import numpy as np
 import os
 
 def make_directory(dir_path):
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
+
+def save_as_npy(data, flag, dirname, deep=True):
+
+    make_directory(dirname)
+
+    if deep:
+        for key, item in data.items():
+            np.save(os.path.join(dirname, "{}-{}.npy".format(flag, key)), item)
+    else:
+        np.save(os.path.join(dirname, "{}.npy".format(flag)), data)
+
 
 class TileExtractor(object):
 
