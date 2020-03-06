@@ -1,1 +1,6 @@
 src/__pycache__/
+data/
+datasets/
+notebooks/.ipynb_checkpoints/
+results/
+src/*.pyc
