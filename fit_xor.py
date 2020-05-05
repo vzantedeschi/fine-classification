@@ -2,12 +2,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from src.datasets import toy_dataset
-from src.trees import forward
+from src.optimization import train
 
 np.random.seed(0)
-X, Y = toy_dataset()
+X, Y = toy_dataset(1000)
 
-forward(X)
+train(X, Y)
 
 # # create a mesh to plot in
 # H = .02  # step size in the mesh

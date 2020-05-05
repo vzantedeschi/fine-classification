@@ -18,28 +18,5 @@ class BinarySearchTree():
 
         self.split_nodes = range(self.nb_split)
 
-        self.des_left = list(range(1, self.nb_nodes, 2))
-        self.des_right = list(range(2, self.nb_nodes, 2))
-
-def get_q(X, A, b, bst):    
-
-    XA = np.dot(X, A.T) # n_samples by n_split
-
-    q = np.ones((len(X), bst.nb_nodes))
-    diff = XA[:, bst.split_nodes] - b[bst.split_nodes]
-    
-    q[:, bst.des_left] = np.minimum(q[:, bst.split_nodes], diff)
-    q[:, bst.des_right] = np.minimum(q[:, bst.split_nodes], -diff)
-
-    return q
-
-def forward(X):
-
-    bst = BinarySearchTree()
-
-    A = np.random.rand(bst.nb_split, X.shape[1])
-    b = np.random.rand(bst.nb_split)
-
-    q = get_q(X, A, b, bst)
-
-    print(q)
+        self.desc_left = range(1, self.nb_nodes, 2)
+        self.desc_right = range(2, self.nb_nodes, 2)
