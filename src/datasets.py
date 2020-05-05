@@ -20,9 +20,7 @@ class Normalizer(object):
 
 # ------------------------------------------------------------ TOY DATASETS
 
-def toy_dataset(n=1000, rnd_seed=0, distr="xor", dim=2):
-
-    np.random.seed(rnd_seed)
+def toy_dataset(n=1000, distr="xor", dim=2):
 
     if distr == "xor":
         
