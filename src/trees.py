@@ -26,9 +26,8 @@ def get_q(X, A, b, bst):
     XA = np.dot(X, A.T) # n_samples by n_split
     q = np.ones((len(X), bst.nb_nodes))
 
-    for t in bst.split_nodes:
-        q[:, bst.des_left[t]] = np.minimum(q[:, t], (XA[:, t] - b[t]))
-        q[:, bst.des_right[t]] = np.minimum(q[:, t], (b[t] - XA[:, t]))
+    q[:, bst.des_left] = np.minimum(q[:, bst.split_nodes], (XA[:, bst.split_nodes] - b[bst.split_nodes]))
+    q[:, bst.des_right] = np.minimum(q[:, bst.split_nodes], (b[bst.split_nodes] - XA[:, bst.split_nodes]))
 
     return q
 
