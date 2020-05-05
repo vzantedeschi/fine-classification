@@ -86,21 +86,18 @@ class LPSparseMAP(torch.nn.Module):
 
         return z
 
-def train(X, Y):
+def train(x, Y, eps=1e-8):
 
-    n, d = X.shape
-
-    # add offset
-    x = np.hstack((X, np.ones((n, 1))))
+    n, d = x.shape
 
     # init latent tree
     bst = BinarySearchTree()
 
     # init latent tree optimizer
-    sparseMAP = LPSparseMAP(bst, d+1)
+    sparseMAP = LPSparseMAP(bst, d)
 
     # init predictor ( [x;z]-> y )
-    predictor = LogisticRegression(d+1+bst.nb_nodes, 1)
+    predictor = LogisticRegression(d+bst.nb_nodes, 1)
 
     # init optimizer
     optimizer = torch.optim.SGD(list(sparseMAP.parameters()) + list(predictor.parameters()), lr=0.01)
@@ -114,7 +111,11 @@ def train(X, Y):
     predictor.train()
     sparseMAP.train()
 
-    for i in range(5000):
+    delta_loss = 1
+    prev_loss = 1
+
+    i = 0
+    while delta_loss > eps:
 
         optimizer.zero_grad()
 
@@ -130,6 +131,14 @@ def train(X, Y):
         
         optimizer.step()
 
+        c_loss = loss.detach()
+
         if i % 1000 == 0:
             print(sparseMAP.A.detach())
-            print(loss.detach())
+            print(c_loss)
+
+        delta_loss = abs(prev_loss - c_loss)
+        prev_loss = c_loss 
+        i += 1
+
+    return sparseMAP, predictor
