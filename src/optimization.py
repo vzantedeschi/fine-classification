@@ -3,7 +3,6 @@ import numpy as np
 from tqdm import tqdm
 
 import torch
-from torch.autograd import Variable
 
 from src.trees import BinarySearchTree
 
@@ -34,7 +33,16 @@ class LPSparseMAP(torch.nn.Module):
         self.A = torch.nn.Parameter(torch.rand(bst.nb_split, dim))
         self.bst = bst       
 
-    def compute_q(self, x):
+    def forward(self, x):
+
+        q = self._compute_q(x)
+
+        # non differentiable output for q > 1
+        z = torch.clamp(q, 0, 1)
+
+        return z
+
+    def _compute_q(self, x):
 
         # compute tree paths q
         XA = torch.mm(x, self.A.T)
@@ -48,7 +56,7 @@ class LPSparseMAP(torch.nn.Module):
 
     # def gradient(self):
 
-    #     q = self.compute_q(X)
+    #     q = self._compute_q(X)
 
     #     g = np.zeros(q.shape)
 
@@ -62,9 +70,9 @@ class LPSparseMAP(torch.nn.Module):
 
     #     return g
 
-    # def forward(self, X):
+    # def objective(self, X):
 
-    #     q = self.compute_q(X)
+    #     q = self._compute_q(X)
 
     #     # differentiable output
     #     out = np.zeros(q.shape)
@@ -79,50 +87,68 @@ class LPSparseMAP(torch.nn.Module):
 
     #     return out
 
-    def forward(self, X):
+class BinaryClassifier(torch.nn.Module):
 
-        q = self.compute_q(X)
+    def __init__(self, bst, dim):
 
-        # non differentiable output
-        z = torch.clamp(q, 0, 1)
+        super(BinaryClassifier, self).__init__()
 
-        return z
+        # init latent tree optimizer (x -> z)
+        self.sparseMAP = LPSparseMAP(bst, dim)
 
-def train(x, Y, nb_iter=1e4, lr=2e-1):
+        # init predictor ( [x;z]-> y )
+        self.predictor = LogisticRegression(dim+bst.nb_nodes, 1)
+
+    def forward(self, x):
+        
+        z = self.sparseMAP(x)
+
+        xz = torch.cat((x, z), 1)
+
+        return self.predictor(xz)
+
+    def parameters(self):
+        return list(self.sparseMAP.parameters()) + list(self.predictor.parameters())
+
+    def predict(self, x):
+
+        y_pred = self.forward(x)
+        y_pred[y_pred > 0.5] = 1
+        y_pred[y_pred <= 0.5] = 0
+
+        return y_pred.detach()
+
+    def train(self):
+        self.sparseMAP.train()
+        self.predictor.train()
+
+def train(x, y, nb_iter=1e4, lr=5e-1):
 
     n, d = x.shape
 
     # init latent tree
     bst = BinarySearchTree()
 
-    # init latent tree optimizer
-    sparseMAP = LPSparseMAP(bst, d)
-
-    # init predictor ( [x;z]-> y )
-    predictor = LogisticRegression(d+bst.nb_nodes, 1)
+    model = BinaryClassifier(bst, d)
 
     # init optimizer
-    optimizer = torch.optim.SGD(list(sparseMAP.parameters()) + list(predictor.parameters()), lr=lr)
+    optimizer = torch.optim.SGD(model.parameters(), lr=lr)
 
     # init loss
     criterion = torch.nn.BCELoss(reduction="mean")
 
-    t_y = torch.from_numpy(Y[:, None]).float()
+    # cast to pytorch Tensors
+    t_y = torch.from_numpy(y[:, None]).float()
     t_x = torch.from_numpy(x).float()
 
-    predictor.train()
-    sparseMAP.train()
+    model.train()
 
     pbar = tqdm(range(int(nb_iter)))
     for i in pbar:
 
         optimizer.zero_grad()
 
-        z = sparseMAP(t_x)
-
-        xz = torch.cat((t_x, z), 1)
-
-        y_pred = predictor(xz)   
+        y_pred = model(t_x)
 
         loss = criterion(y_pred, t_y)
 
@@ -130,6 +156,6 @@ def train(x, Y, nb_iter=1e4, lr=2e-1):
         
         optimizer.step()
 
-        pbar.set_description("BCE train loss %s" % loss.detach().data)
+        pbar.set_description("BCE train loss %s" % loss.detach().numpy())
 
-    return sparseMAP, predictor
+    return model

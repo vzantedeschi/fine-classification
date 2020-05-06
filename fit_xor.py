@@ -7,20 +7,22 @@ from src.datasets import toy_dataset
 from src.optimization import train
 
 N = 1000
+SEED = 2020
+np.random.seed(SEED)
+torch.manual_seed(SEED)
 
-np.random.seed(0)
+# generate XOR dataset
 X, Y = toy_dataset(N)
+
 # add offset
 x = np.hstack((X, np.ones((N, 1))))
 
-sparseMAP, predictor = train(x, Y)
+# train latent class tree and logistic regressor
+model = train(x, Y)
 
+# predict on training data
 t_x = torch.from_numpy(x).float()
-z = sparseMAP(t_x)
-xz = torch.cat((t_x, z), 1)
-y_pred = predictor(xz).detach().numpy()
-y_pred[y_pred > 0.5] = 1
-y_pred[y_pred <= 0.5] = 0
+y_pred = model.predict(t_x).numpy()
 
 # create a mesh to plot in
 H = .02  # step size in the mesh
