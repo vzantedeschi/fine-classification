@@ -1,5 +1,7 @@
 import numpy as np
 
+from tqdm import tqdm
+
 import torch
 from torch.autograd import Variable
 
@@ -86,7 +88,7 @@ class LPSparseMAP(torch.nn.Module):
 
         return z
 
-def train(x, Y, eps=1e-8):
+def train(x, Y, nb_iter=1e4, lr=2e-1):
 
     n, d = x.shape
 
@@ -100,7 +102,7 @@ def train(x, Y, eps=1e-8):
     predictor = LogisticRegression(d+bst.nb_nodes, 1)
 
     # init optimizer
-    optimizer = torch.optim.SGD(list(sparseMAP.parameters()) + list(predictor.parameters()), lr=0.01)
+    optimizer = torch.optim.SGD(list(sparseMAP.parameters()) + list(predictor.parameters()), lr=lr)
 
     # init loss
     criterion = torch.nn.BCELoss(reduction="mean")
@@ -111,11 +113,8 @@ def train(x, Y, eps=1e-8):
     predictor.train()
     sparseMAP.train()
 
-    delta_loss = 1
-    prev_loss = 1
-
-    i = 0
-    while delta_loss > eps:
+    pbar = tqdm(range(int(nb_iter)))
+    for i in pbar:
 
         optimizer.zero_grad()
 
@@ -131,14 +130,6 @@ def train(x, Y, eps=1e-8):
         
         optimizer.step()
 
-        c_loss = loss.detach()
-
-        if i % 1000 == 0:
-            print(sparseMAP.A.detach())
-            print(c_loss)
-
-        delta_loss = abs(prev_loss - c_loss)
-        prev_loss = c_loss 
-        i += 1
+        pbar.set_description("BCE train loss %s" % loss.detach().data)
 
     return sparseMAP, predictor
