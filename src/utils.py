@@ -1,6 +1,7 @@
 import math
 import numpy as np
 import os
+import torch
 
 def make_directory(dir_path):
     if not os.path.exists(dir_path):
@@ -16,6 +17,33 @@ def save_as_npy(data, flag, dirname, deep=True):
     else:
         np.save(os.path.join(dirname, "{}.npy".format(flag)), data)
 
+def load_model(model_dir):
+    
+    # load model
+    model_path = os.path.join(model_dir, "model.t7")
+    model = torch.load(model_path)["model"]
+
+    return model
+
+def save_model(model, optimizer, save_dict, save_dir, **kwargs):
+
+    state = save_dict.copy()
+
+    try:
+        state['model'] = model.module
+        state_dict = model.module.state_dict()
+
+    except AttributeError:
+        state['model'] = model
+        state_dict = model.state_dict()
+
+    state['model-statedict'] = state_dict
+    state['optimizer-statedict'] = optimizer.state_dict()
+
+    for k, value in kwargs.items():
+        state[k] = value
+
+    torch.save(state, os.path.join(save_dir, 'model.t7'))
 
 class TileExtractor(object):
 

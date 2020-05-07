@@ -78,6 +78,10 @@ class BinaryClassifier(torch.nn.Module):
         # init predictor ( [x;z]-> y )
         self.predictor = LogisticRegression(dim + self.sparseMAP.bst.nb_nodes, 1)
 
+    def eval(self):
+        self.sparseMAP.eval()
+        self.predictor.eval()
+
     def forward(self, X):
         
         # add offset
@@ -115,6 +119,10 @@ class LinearRegressor(torch.nn.Module):
 
         # init predictor ( [x1;z]-> y )
         self.predictor = LinearRegression(in_size1 + 1 + self.sparseMAP.bst.nb_nodes, out_size)
+
+    def eval(self):
+        self.sparseMAP.eval()
+        self.predictor.eval()
 
     def forward(self, X1, X2):
         
@@ -178,8 +186,6 @@ def train_batch(x, y, bst_depth=2, nb_iter=1e4, lr=5e-1):
 
 def train_stochastic(dataloader, model, optimizer, criterion):
 
-    import time
-
     model.train()
 
     train_loss = 0.
@@ -199,4 +205,17 @@ def train_stochastic(dataloader, model, optimizer, criterion):
 
         pbar.set_description("train loss %f" % (train_loss / (i + 1)))
 
-    return model
+def evaluate(dataloader, model, criterion):
+
+    model.eval()
+
+    total_loss = 0.
+    
+    for i, batch in enumerate(dataloader):
+
+        pred = model(batch["radiances"], batch["properties"])
+
+        loss = criterion(pred, batch["properties"])
+        total_loss += loss.detach().numpy()
+
+    return total_loss / len(dataloader)
