@@ -7,6 +7,7 @@ import netCDF4 as nc4
 
 from sklearn.datasets import make_swiss_roll
 
+import torch
 from torch.utils.data import Dataset
 
 class Normalizer(object):
@@ -91,6 +92,20 @@ def read_npz(npz_file):
 
     return file['radiances'], file['properties'], file['cloud_mask'], file['labels']
 
+def class_pixel_collate(batch, label=7):
+    """ collate batch instances by stacking their pixels. Select only cloudy pixels of class <label>."""
+    
+    res = {'radiances': [], 'properties': []}
+
+    for instance in batch:
+
+        mask = np.logical_and(instance['labels'] == label, instance['rois'])[0]
+        nb_pixels = np.sum(mask)
+
+        for key, value in res.items():
+            value.append(instance[key].transpose(1, 2, 0)[mask].reshape(nb_pixels, -1))
+
+    return {key: torch.from_numpy(np.vstack(value)).float() for key, value in res.items()}
 
 class CumuloDataset(Dataset):
 
@@ -123,7 +138,7 @@ class CumuloDataset(Dataset):
         if self.normalizer is not None:
             radiances = self.normalizer(radiances)
 
-        return filename, radiances, properties, rois, labels
+        return {"filename": filename, "radiances": radiances, "properties": properties, "rois": rois, "labels": labels}
 
     def __str__(self):
         return 'CUMULO'

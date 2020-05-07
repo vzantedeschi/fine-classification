@@ -163,3 +163,38 @@ def train_batch(x, y, bst_depth=2, nb_iter=1e4, lr=5e-1):
 
     return model
 
+def train_stochastic(dataloader, dim, bst_depth=2, nb_epochs=10, lr=1e-2):
+
+    # init latent tree
+    bst = BinarySearchTree(bst_depth)
+
+    model = BinaryClassifier(bst, dim+1)
+
+    # init optimizer
+    optimizer = torch.optim.SGD(model.parameters(), lr=lr)
+
+    # init loss
+    criterion = torch.nn.BCELoss(reduction="mean")
+
+    # cast to pytorch Tensors
+    t_y = torch.from_numpy(y[:, None]).float()
+    t_x = torch.from_numpy(x).float()
+
+    model.train()
+
+    pbar = tqdm(dataloader)
+    for i in pbar:
+
+        optimizer.zero_grad()
+
+        y_pred = model(t_x)
+
+        loss = criterion(y_pred, t_y)
+
+        loss.backward()
+        
+        optimizer.step()
+
+        pbar.set_description("BCE train loss %s" % loss.detach().numpy())
+
+    return model
