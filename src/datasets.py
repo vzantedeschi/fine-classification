@@ -100,7 +100,11 @@ def class_pixel_collate(batch, label=7):
     for instance in batch:
 
         # select pixels belonging to class <label> that are cloudy and have valid property values
-        mask = np.logical_and(instance['labels'][0] == label, instance['rois'][0], np.sum(np.isnan(instance['properties']), 0) == 0)
+        class_pixels = instance['labels'][0] == label
+        cloudy_pixels = instance['rois'][0] == 1
+        valid_pixels = np.sum(np.isnan(instance['properties']), 0) == 0
+
+        mask = valid_pixels & cloudy_pixels & class_pixels
         nb_pixels = np.sum(mask)
 
         for key, value in res.items():
