@@ -60,10 +60,14 @@ def compute_scaler(dataloader, dim=13):
     max_values = torch.Tensor([-float("Inf")] * dim)
 
     for batch in dataloader:
-        min_values = torch.min((batch["radiances"], min_values), 0)
-        max_values = torch.max((batch["radiances"], max_values), 0)
 
-    return Scaler(min_values, max_values)
+        c_min = torch.min(batch["radiances"], 0)[0]
+        c_max = torch.max(batch["radiances"], 0)[0]
+
+        min_values = torch.min(c_min, min_values)[0]
+        max_values = torch.max(c_max, max_values)[0]
+
+    return Scaler(min_values.numpy(), max_values.numpy())
 
 # ------------------------------------------------------------ TOY DATASETS
 
@@ -158,7 +162,7 @@ def class_pixel_collate(batch, label=7):
 
 class CumuloDataset(Dataset):
 
-    def __init__(self, root_dir, normalizer=None, ext="npz", prop_idx=None):
+    def __init__(self, root_dir, rad_preproc=None, prop_preproc=None, ext="npz", prop_idx=None):
         
         self.root_dir = root_dir
         self.ext = ext
@@ -168,7 +172,8 @@ class CumuloDataset(Dataset):
         if len(self.file_paths) == 0:
             raise FileNotFoundError("no " + ext + " files in", self.root_dir)
 
-        self.normalizer = normalizer
+        self.rad_preproc = rad_preproc
+        self.prop_preproc = prop_preproc
         self.prop_idx = prop_idx
 
     def __len__(self):
@@ -185,11 +190,14 @@ class CumuloDataset(Dataset):
         elif self.ext == "nc":
             radiances, properties, rois, labels = read_nc(filename)
 
-        if self.normalizer is not None:
-            radiances = self.normalizer(radiances)
+        if self.rad_preproc is not None:
+            radiances = self.rad_preproc(radiances)
 
         if self.prop_idx is not None:
             properties = properties[self.prop_idx]
+
+        if self.prop_preproc is not None:
+            properties = self.prop_preproc(properties)
 
         return {"filename": filename, "radiances": radiances, "properties": properties, "rois": rois, "labels": labels}
 
