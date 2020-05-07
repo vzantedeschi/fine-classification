@@ -5,6 +5,8 @@ import os
 
 import netCDF4 as nc4
 
+from sklearn.datasets import make_swiss_roll
+
 from torch.utils.data import Dataset
 
 class Normalizer(object):
@@ -31,10 +33,10 @@ def toy_dataset(n=1000, distr="xor", dim=2):
 
         n2 = n // 2
         X1 = np.random.normal((0,-2), (1,2), (n2, dim))
-        Y1 = np.ones((n2, 1))
+        Y1 = np.ones(n2)
 
         X2 = np.random.normal((0,2), (1,2), (n2, dim))
-        Y2 = np.zeros((n2, 1))
+        Y2 = np.zeros(n2)
 
         X = np.r_[X1, X2]
         Y = np.r_[Y1, Y2]
@@ -44,10 +46,10 @@ def toy_dataset(n=1000, distr="xor", dim=2):
         n2 = n // 2
 
         X1,_ = make_swiss_roll(n_samples=n2, noise=0)
-        Y1 = np.ones((n2, 1))
+        Y1 = np.ones(n2)
 
         X2 = np.random.uniform(low=tuple([-1.] * dim), high=tuple([1.] * dim), size=(n2, dim))
-        Y2 = zeros((n2, 1))
+        Y2 = np.zeros(n2)
 
         X = np.r_[X1[:,::2] / 15, X2]
         Y = np.r_[Y1, Y2]

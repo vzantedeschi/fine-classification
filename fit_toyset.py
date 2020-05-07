@@ -6,13 +6,14 @@ import torch
 from src.datasets import toy_dataset
 from src.optimization import train
 
+DISTR = "swissroll"
 N = 1000
 SEED = 2020
 np.random.seed(SEED)
 torch.manual_seed(SEED)
 
-# generate XOR dataset
-X, Y = toy_dataset(N)
+# generate toy dataset
+X, Y = toy_dataset(N, DISTR)
 
 # add offset
 x = np.hstack((X, np.ones((N, 1))))
@@ -35,6 +36,8 @@ plt.scatter(X[:,0], X[:,1], cmap=plt.cm.coolwarm, s=20, c=y_pred)
 plt.xlim(xx.min(),xx.max())
 plt.ylim(yy.min(),yy.max())
 
-plt.title("xor")
+plt.title(DISTR)
+
+plt.savefig("./results/latent-trees/" + DISTR + ".pdf", bbox_inches='tight', transparent=True)
 
 plt.show()
