@@ -5,11 +5,11 @@ import numpy as np
 import torch
 
 from src.datasets import toy_dataset
-from src.optimization import train
+from src.optimization import train_batch
 
-DISTR = "swissroll"
+DISTR = "xor"
 N = 1000
-TREE_DEPTH = 6
+TREE_DEPTH = 3
 LR = 0.1
 ITER = 2e4
 
@@ -20,11 +20,8 @@ torch.manual_seed(SEED)
 # generate toy dataset
 X, Y = toy_dataset(N, DISTR)
 
-# add offset
-x = np.hstack((X, np.ones((N, 1))))
-
 # train latent class tree and logistic regressor
-model = train(x, Y, bst_depth=TREE_DEPTH, nb_iter=ITER, lr=LR)
+model = train_batch(X, Y, bst_depth=TREE_DEPTH, nb_iter=ITER, lr=LR)
 
 # define colors
 colors = [(1, 1, 1), (0.5, 0.5, 1)]
@@ -38,8 +35,6 @@ xx, yy = np.meshgrid(np.arange(x1_min, x1_max, H), np.arange(x2_min, x2_max, H))
 
 # estimate learned class boundaries
 test_x = np.c_[xx.ravel(), yy.ravel()]
-test_x = np.hstack((test_x, np.ones((len(test_x), 1))))
-
 t_x = torch.from_numpy(test_x).float()
 
 y_pred = model.predict(t_x).numpy()

@@ -99,8 +99,11 @@ class BinaryClassifier(torch.nn.Module):
         # init predictor ( [x;z]-> y )
         self.predictor = LogisticRegression(dim+bst.nb_nodes, 1)
 
-    def forward(self, x):
+    def forward(self, X):
         
+        # add offset
+        x = torch.cat((X, torch.ones((len(X), 1))), 1)
+
         z = self.sparseMAP(x)
 
         xz = torch.cat((x, z), 1)
@@ -110,9 +113,9 @@ class BinaryClassifier(torch.nn.Module):
     def parameters(self):
         return list(self.sparseMAP.parameters()) + list(self.predictor.parameters())
 
-    def predict(self, x):
+    def predict(self, X):
 
-        y_pred = self.forward(x)
+        y_pred = self.forward(X)
         y_pred[y_pred > 0.5] = 1
         y_pred[y_pred <= 0.5] = 0
 
@@ -122,14 +125,14 @@ class BinaryClassifier(torch.nn.Module):
         self.sparseMAP.train()
         self.predictor.train()
 
-def train(x, y, bst_depth=2, nb_iter=1e4, lr=5e-1):
+def train_batch(x, y, bst_depth=2, nb_iter=1e4, lr=5e-1):
 
     n, d = x.shape
 
     # init latent tree
     bst = BinarySearchTree(bst_depth)
 
-    model = BinaryClassifier(bst, d)
+    model = BinaryClassifier(bst, d + 1)
 
     # init optimizer
     optimizer = torch.optim.SGD(model.parameters(), lr=lr)
@@ -159,3 +162,4 @@ def train(x, y, bst_depth=2, nb_iter=1e4, lr=5e-1):
         pbar.set_description("BCE train loss %s" % loss.detach().numpy())
 
     return model
+
