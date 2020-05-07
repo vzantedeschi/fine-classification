@@ -122,12 +122,12 @@ class BinaryClassifier(torch.nn.Module):
         self.sparseMAP.train()
         self.predictor.train()
 
-def train(x, y, nb_iter=1e4, lr=5e-1):
+def train(x, y, bst_depth=2, nb_iter=1e4, lr=5e-1):
 
     n, d = x.shape
 
     # init latent tree
-    bst = BinarySearchTree()
+    bst = BinarySearchTree(bst_depth)
 
     model = BinaryClassifier(bst, d)
 

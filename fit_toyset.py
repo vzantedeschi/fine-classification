@@ -8,6 +8,8 @@ from src.optimization import train
 
 DISTR = "swissroll"
 N = 1000
+TREE_DEPTH = 5
+
 SEED = 2020
 np.random.seed(SEED)
 torch.manual_seed(SEED)
@@ -19,7 +21,7 @@ X, Y = toy_dataset(N, DISTR)
 x = np.hstack((X, np.ones((N, 1))))
 
 # train latent class tree and logistic regressor
-model = train(x, Y)
+model = train(x, Y, TREE_DEPTH)
 
 # predict on training data
 t_x = torch.from_numpy(x).float()
