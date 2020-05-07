@@ -21,6 +21,18 @@ class Normalizer(object):
 
         return (image - self.mean) / self.std
 
+class Scaler(object):
+
+    def __init__(self, min_values, max_values):
+        """ scales to [0,1] range """
+
+        self.min_values = min_values
+        self.max_values = max_values
+
+    def __call__(self, image):
+
+        return (image - self.min_values) / (self.max_values - self.min_values)
+
 def compute_normalizer(dataloader, dim=13):
 
     mean = torch.zeros(dim)
@@ -41,6 +53,17 @@ def compute_normalizer(dataloader, dim=13):
     std = (std / (nb_instances - 1))**0.5
 
     return Normalizer(mean.numpy().reshape(-1, 1, 1), std.numpy().reshape(-1, 1, 1))
+
+def compute_scaler(dataloader, dim=13):
+
+    min_values = torch.Tensor([float("Inf")] * dim)
+    max_values = torch.Tensor([-float("Inf")] * dim)
+
+    for batch in dataloader:
+        min_values = torch.min((batch["radiances"], min_values), 0)
+        max_values = torch.max((batch["radiances"], max_values), 0)
+
+    return Scaler(min_values, max_values)
 
 # ------------------------------------------------------------ TOY DATASETS
 

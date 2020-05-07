@@ -20,8 +20,8 @@ dataset = CumuloDataset(path, ext="npz", prop_idx=[0])
 dataloader = DataLoader(dataset, batch_size=1, shuffle=True, collate_fn=class_pixel_collate)
 
 # compute normalizer and reload data but normalized
-normalizer = compute_normalizer(dataloader)
-dataset = CumuloDataset(path, normalizer=normalizer, ext="npz", prop_idx=[0])
+trans = compute_scaler(dataloader)
+dataset = CumuloDataset(path, normalizer=trans, ext="npz", prop_idx=[0])
 dataloader = DataLoader(dataset, batch_size=1, shuffle=True, collate_fn=class_pixel_collate)
 
 # 13 features, 1 property
