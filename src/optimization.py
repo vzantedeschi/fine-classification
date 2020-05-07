@@ -6,7 +6,19 @@ import torch
 
 from src.trees import BinarySearchTree
 
-# ----------------------------------------------------------------------- LOGISTIC REGRESSION
+# ----------------------------------------------------------------------- LINEAR REGRESSION
+
+class LinearRegression(torch.nn.Module):
+    
+    def __init__(self, in_size, out_size):
+        
+        super(LinearRegression, self).__init__()
+
+        self.linear = torch.nn.Linear(in_size, out_size)     
+
+    def forward(self, x):
+        
+        return self.linear(x)
 
 class LogisticRegression(torch.nn.Module):
     
@@ -54,39 +66,6 @@ class LPSparseMAP(torch.nn.Module):
 
         return q
 
-    # def gradient(self):
-
-    #     q = self._compute_q(X)
-
-    #     g = np.zeros(q.shape)
-
-    #     # value when q > 1
-    #     idx = q > 1
-    #     g[idx] = 1
-
-    #     # value when 0 <= q <= 1
-    #     idx = 0 <= q <= 1
-    #     g[idx] = q[idx]
-
-    #     return g
-
-    # def objective(self, X):
-
-    #     q = self._compute_q(X)
-
-    #     # differentiable output
-    #     out = np.zeros(q.shape)
-
-    #     # value when q > 1
-    #     idx = q > 1
-    #     out[idx] = q[idx] - 0.5
-
-    #     # value when 0 <= q <= 1
-    #     idx = 0 <= q <= 1
-    #     out[idx] = q[idx]**2 / 2 
-
-    #     return out
-
 class BinaryClassifier(torch.nn.Module):
 
     def __init__(self, bst_depth, dim):
@@ -118,6 +97,42 @@ class BinaryClassifier(torch.nn.Module):
         y_pred = self.forward(X)
         y_pred[y_pred > 0.5] = 1
         y_pred[y_pred <= 0.5] = 0
+
+        return y_pred.detach()
+
+    def train(self):
+        self.sparseMAP.train()
+        self.predictor.train()
+
+class LinearRegressor(torch.nn.Module):
+
+    def __init__(self, bst_depth, in_size, out_size):
+
+        super(LinearRegressor, self).__init__()
+
+        # init latent tree optimizer (x -> z)
+        self.sparseMAP = LPSparseMAP(bst_depth, in_size + 1)
+
+        # init predictor ( [x;z]-> y )
+        self.predictor = LinearRegression(in_size + 1 + self.sparseMAP.bst.nb_nodes, out_size)
+
+    def forward(self, X):
+        
+        # add offset
+        x = torch.cat((X, torch.ones((len(X), 1))), 1)
+
+        z = self.sparseMAP(x)
+
+        xz = torch.cat((x, z), 1)
+
+        return self.predictor(xz)
+
+    def parameters(self):
+        return list(self.sparseMAP.parameters()) + list(self.predictor.parameters())
+
+    def predict(self, X):
+
+        y_pred = self.forward(X)
 
         return y_pred.detach()
 

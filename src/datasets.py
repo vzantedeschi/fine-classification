@@ -99,7 +99,8 @@ def class_pixel_collate(batch, label=7):
 
     for instance in batch:
 
-        mask = np.logical_and(instance['labels'] == label, instance['rois'])[0]
+        # select pixels belonging to class <label> that are cloudy and have valid property values
+        mask = np.logical_and(instance['labels'][0] == label, instance['rois'][0], np.sum(np.isnan(instance['properties']), 0) == 0)
         nb_pixels = np.sum(mask)
 
         for key, value in res.items():
@@ -109,7 +110,7 @@ def class_pixel_collate(batch, label=7):
 
 class CumuloDataset(Dataset):
 
-    def __init__(self, root_dir, normalizer=None, ext="npz"):
+    def __init__(self, root_dir, normalizer=None, ext="npz", prop_idx=None):
         
         self.root_dir = root_dir
         self.ext = ext
@@ -120,6 +121,7 @@ class CumuloDataset(Dataset):
             raise FileNotFoundError("no " + ext + " files in", self.root_dir)
 
         self.normalizer = normalizer
+        self.prop_idx = prop_idx
 
     def __len__(self):
 
@@ -137,6 +139,9 @@ class CumuloDataset(Dataset):
 
         if self.normalizer is not None:
             radiances = self.normalizer(radiances)
+
+        if self.prop_idx is not None:
+            properties = properties[self.prop_idx]
 
         return {"filename": filename, "radiances": radiances, "properties": properties, "rois": rois, "labels": labels}
 
