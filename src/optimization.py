@@ -186,9 +186,6 @@ def train_stochastic(dataloader, model, optimizer, criterion):
     pbar = tqdm(dataloader)
     for i, batch in enumerate(pbar):
 
-        assert torch.sum(torch.isnan(batch["radiances"])) == 0
-        assert torch.sum(torch.isnan(batch["properties"])) == 0
-
         optimizer.zero_grad()
 
         pred = model(batch["radiances"], batch["properties"])

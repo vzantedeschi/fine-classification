@@ -17,7 +17,7 @@ torch.manual_seed(SEED)
 
 # load CUMULO, all radiances and LWP property
 dataset = CumuloDataset(path, ext="npz", prop_idx=[0])
-dataloader = DataLoader(dataset, batch_size=2, shuffle=True, collate_fn=class_pixel_collate)
+dataloader = DataLoader(dataset, batch_size=1, shuffle=True, collate_fn=class_pixel_collate)
 
 # 13 features, 1 property
 model = LinearRegressor(TREE_DEPTH, 13, 1, 1)
