@@ -110,6 +110,13 @@ class BinaryClassifier(torch.nn.Module):
 
         return y_pred.detach()
 
+    def predict_bst(self, X):
+
+        # add offset
+        x = torch.cat((X, torch.ones((len(X), 1))), 1)
+
+        return self.sparseMAP.predict(x)
+
     def train(self):
         self.sparseMAP.train()
         self.predictor.train()
@@ -223,6 +230,7 @@ def evaluate(dataloader, model, criterion, classify=False):
 
     total_loss = 0.
     predictions = []
+    properties = []
     
     for i, batch in enumerate(dataloader):
 
@@ -233,8 +241,9 @@ def evaluate(dataloader, model, criterion, classify=False):
 
         if classify:
             predictions.append(model.predict_bst(batch["properties"]))
+            properties.append(batch["properties"].detach().numpy())
 
     if classify:
-        return total_loss / len(dataloader), np.hstack(predictions)
+        return total_loss / len(dataloader), np.hstack(predictions), np.vstack(properties)
     else:
         return total_loss
