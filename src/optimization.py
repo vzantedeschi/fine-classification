@@ -14,7 +14,7 @@ class LinearRegression(torch.nn.Module):
         
         super(LinearRegression, self).__init__()
 
-        self.linear = torch.nn.Linear(in_size, out_size)     
+        self.linear = torch.nn.Linear(in_size, out_size, bias=False)     
 
     def forward(self, x):
         
@@ -26,7 +26,7 @@ class LogisticRegression(torch.nn.Module):
         
         super(LogisticRegression, self).__init__()
 
-        self.linear = torch.nn.Linear(in_size, out_size)     
+        self.linear = torch.nn.Linear(in_size, out_size, bias=False)     
 
     def forward(self, x):
 
@@ -106,24 +106,25 @@ class BinaryClassifier(torch.nn.Module):
 
 class LinearRegressor(torch.nn.Module):
 
-    def __init__(self, bst_depth, in_size, out_size):
+    def __init__(self, bst_depth, in_size1, in_size2, out_size):
 
         super(LinearRegressor, self).__init__()
 
-        # init latent tree optimizer (x -> z)
-        self.sparseMAP = LPSparseMAP(bst_depth, in_size + 1)
+        # init latent tree optimizer (x2 -> z)
+        self.sparseMAP = LPSparseMAP(bst_depth, in_size2 + 1)
 
-        # init predictor ( [x;z]-> y )
-        self.predictor = LinearRegression(in_size + 1 + self.sparseMAP.bst.nb_nodes, out_size)
+        # init predictor ( [x1;z]-> y )
+        self.predictor = LinearRegression(in_size1 + 1 + self.sparseMAP.bst.nb_nodes, out_size)
 
-    def forward(self, X):
+    def forward(self, X1, X2):
         
         # add offset
-        x = torch.cat((X, torch.ones((len(X), 1))), 1)
+        x1 = torch.cat((X1, torch.ones((len(X1), 1))), 1)
+        x2 = torch.cat((X2, torch.ones((len(X2), 1))), 1)
 
-        z = self.sparseMAP(x)
+        z = self.sparseMAP(x2)
 
-        xz = torch.cat((x, z), 1)
+        xz = torch.cat((x1, z), 1)
 
         return self.predictor(xz)
 
@@ -177,21 +178,28 @@ def train_batch(x, y, bst_depth=2, nb_iter=1e4, lr=5e-1):
 
 def train_stochastic(dataloader, model, optimizer, criterion):
 
+    import time
+
     model.train()
 
+    train_loss = 0.
     pbar = tqdm(dataloader)
-    for batch in pbar:
+    for i, batch in enumerate(pbar):
+
+        assert torch.sum(torch.isnan(batch["radiances"])) == 0
+        assert torch.sum(torch.isnan(batch["properties"])) == 0
 
         optimizer.zero_grad()
 
-        pred = model(batch["radiances"])
+        pred = model(batch["radiances"], batch["properties"])
 
         loss = criterion(pred, batch["properties"])
 
         loss.backward()
-        
+        train_loss += loss.detach().numpy()
+
         optimizer.step()
 
-        pbar.set_description("train loss %s" % loss.detach().numpy())
+        pbar.set_description("train loss %f" % (train_loss / (i + 1)))
 
     return model
