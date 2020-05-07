@@ -27,9 +27,6 @@ class BinarySearchTree():
     def predict(self, z):
         """ each leaf corresponds to a class """
 
-        labels = np.zeros(len(z))
-
-        for i, leaf in enumerate(self.leaves):
-            labels[z[:, leaf] == 1] = i
+        labels = np.argmax(z[:, self.leaves], 1)
 
         return labels
