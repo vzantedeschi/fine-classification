@@ -26,12 +26,12 @@ class LogisticRegression(torch.nn.Module):
 
 class LPSparseMAP(torch.nn.Module):
 
-    def __init__(self, bst, dim):
+    def __init__(self, bst_depth, dim):
 
         super(LPSparseMAP, self).__init__()
 
-        self.A = torch.nn.Parameter(torch.rand(bst.nb_split, dim))
-        self.bst = bst       
+        self.bst = BinarySearchTree(bst_depth)       
+        self.A = torch.nn.Parameter(torch.rand(self.bst.nb_split, dim))
 
     def forward(self, x):
 
@@ -89,15 +89,15 @@ class LPSparseMAP(torch.nn.Module):
 
 class BinaryClassifier(torch.nn.Module):
 
-    def __init__(self, bst, dim):
+    def __init__(self, bst_depth, dim):
 
         super(BinaryClassifier, self).__init__()
 
         # init latent tree optimizer (x -> z)
-        self.sparseMAP = LPSparseMAP(bst, dim)
+        self.sparseMAP = LPSparseMAP(bst_depth, dim)
 
         # init predictor ( [x;z]-> y )
-        self.predictor = LogisticRegression(dim+bst.nb_nodes, 1)
+        self.predictor = LogisticRegression(dim + self.sparseMAP.bst.nb_nodes, 1)
 
     def forward(self, X):
         
@@ -129,10 +129,7 @@ def train_batch(x, y, bst_depth=2, nb_iter=1e4, lr=5e-1):
 
     n, d = x.shape
 
-    # init latent tree
-    bst = BinarySearchTree(bst_depth)
-
-    model = BinaryClassifier(bst, d + 1)
+    model = BinaryClassifier(bst_depth, d + 1)
 
     # init optimizer
     optimizer = torch.optim.SGD(model.parameters(), lr=lr)
@@ -163,38 +160,23 @@ def train_batch(x, y, bst_depth=2, nb_iter=1e4, lr=5e-1):
 
     return model
 
-def train_stochastic(dataloader, dim, bst_depth=2, nb_epochs=10, lr=1e-2):
-
-    # init latent tree
-    bst = BinarySearchTree(bst_depth)
-
-    model = BinaryClassifier(bst, dim+1)
-
-    # init optimizer
-    optimizer = torch.optim.SGD(model.parameters(), lr=lr)
-
-    # init loss
-    criterion = torch.nn.BCELoss(reduction="mean")
-
-    # cast to pytorch Tensors
-    t_y = torch.from_numpy(y[:, None]).float()
-    t_x = torch.from_numpy(x).float()
+def train_stochastic(dataloader, model, optimizer, criterion):
 
     model.train()
 
     pbar = tqdm(dataloader)
-    for i in pbar:
+    for batch in pbar:
 
         optimizer.zero_grad()
 
-        y_pred = model(t_x)
+        pred = model(batch["radiances"])
 
-        loss = criterion(y_pred, t_y)
+        loss = criterion(pred, batch["properties"])
 
         loss.backward()
         
         optimizer.step()
 
-        pbar.set_description("BCE train loss %s" % loss.detach().numpy())
+        pbar.set_description("train loss %s" % loss.detach().numpy())
 
     return model
