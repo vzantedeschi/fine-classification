@@ -20,7 +20,7 @@ torch.manual_seed(SEED)
 dataset = CumuloDataset(path, ext="npz", prop_idx=[0])
 dataloader = DataLoader(dataset, batch_size=1, shuffle=True, collate_fn=class_pixel_collate)
 rad_preproc = compute_scaler(dataloader)
-prop_preproc = Scaler(np.array([0]), np.array([6000]))
+prop_preproc = Scaler(np.array([0]), np.array([5000]))
 
 # reload data but rescaled and split in train, val, test
 dataset = CumuloDataset(path, rad_preproc=rad_preproc, prop_preproc=prop_preproc, ext="npz", prop_idx=[0])
@@ -73,6 +73,6 @@ for e in range(EPOCHS):
 print("best validation loss (epoch {}): {}\n".format(best_e, best_val_loss))
 
 best_model = load_model("./results/latent-trees/")
-test_loss = evaluate(testloader, best_model, criterion)
+test_loss, test_labels = evaluate(testloader, best_model, criterion, classify=True)
 
 print("test loss (epoch {}): {}".format(best_e, test_loss))

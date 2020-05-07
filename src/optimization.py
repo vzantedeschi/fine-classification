@@ -54,6 +54,12 @@ class LPSparseMAP(torch.nn.Module):
 
         return z
 
+    def predict(self, x):
+
+        z = self.forward(x).detach().numpy()
+
+        return self.bst.predict(z)
+
     def _compute_q(self, x):
 
         # compute tree paths q
@@ -139,11 +145,17 @@ class LinearRegressor(torch.nn.Module):
     def parameters(self):
         return list(self.sparseMAP.parameters()) + list(self.predictor.parameters())
 
-    def predict(self, X):
+    def predict(self, X1, X2):
 
-        y_pred = self.forward(X)
+        y_pred = self.forward(X1, X2)
 
         return y_pred.detach()
+
+    def predict_bst(self, X2):
+
+        x2 = torch.cat((X2, torch.ones((len(X2), 1))), 1)
+
+        return self.sparseMAP.predict(x2)
 
     def train(self):
         self.sparseMAP.train()
@@ -205,11 +217,12 @@ def train_stochastic(dataloader, model, optimizer, criterion):
 
         pbar.set_description("train loss %f" % (train_loss / (i + 1)))
 
-def evaluate(dataloader, model, criterion):
+def evaluate(dataloader, model, criterion, classify=False):
 
     model.eval()
 
     total_loss = 0.
+    predictions = []
     
     for i, batch in enumerate(dataloader):
 
@@ -218,4 +231,10 @@ def evaluate(dataloader, model, criterion):
         loss = criterion(pred, batch["properties"])
         total_loss += loss.detach().numpy()
 
-    return total_loss / len(dataloader)
+        if classify:
+            predictions.append(model.predict_bst(batch["properties"]))
+
+    if classify:
+        return total_loss / len(dataloader), np.hstack(predictions)
+    else:
+        return total_loss
