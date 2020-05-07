@@ -21,6 +21,27 @@ class Normalizer(object):
 
         return (image - self.mean) / self.std
 
+def compute_normalizer(dataloader, dim=13):
+
+    mean = torch.zeros(dim)
+    std = torch.zeros(dim)
+
+    nb_instances = 0
+
+    # estimate mean
+    for batch in dataloader:
+        mean += torch.sum(batch["radiances"], 0)
+        nb_instances += len(batch["radiances"])
+
+    mean /= nb_instances
+    # estimate std
+    for batch in dataloader:
+        std += torch.sum((batch["radiances"] - mean)**2, 0)
+
+    std = (std / (nb_instances - 1))**0.5
+
+    return Normalizer(mean.numpy().reshape(-1, 1, 1), std.numpy().reshape(-1, 1, 1))
+
 # ------------------------------------------------------------ TOY DATASETS
 
 def toy_dataset(n=1000, distr="xor", dim=2):
