@@ -10,6 +10,8 @@ from sklearn.datasets import make_swiss_roll
 import torch
 from torch.utils.data import Dataset
 
+# -------------------------------------------------------------------------- PREPROCESSING
+
 class Normalizer(object):
 
     def __init__(self, mean, std):
@@ -23,11 +25,11 @@ class Normalizer(object):
 
 class Scaler(object):
 
-    def __init__(self, min_values, max_values):
+    def __init__(self, min_values, max_values, dim=(256, 256)):
         """ scales to [0,1] range """
 
-        self.min_values = min_values
-        self.max_values = max_values
+        self.min_values = np.repeat(min_values, np.prod(dim)).reshape(len(min_values), *dim)
+        self.max_values = np.repeat(max_values, np.prod(dim)).reshape(len(max_values), *dim)
 
     def __call__(self, image):
 
@@ -63,9 +65,9 @@ def compute_scaler(dataloader, dim=13):
 
         c_min = torch.min(batch["radiances"], 0)[0]
         c_max = torch.max(batch["radiances"], 0)[0]
-
-        min_values = torch.min(c_min, min_values)[0]
-        max_values = torch.max(c_max, max_values)[0]
+        
+        min_values = torch.min(c_min, min_values)
+        max_values = torch.max(c_max, max_values)
 
     return Scaler(min_values.numpy(), max_values.numpy())
 
@@ -113,6 +115,28 @@ properties = ['cloud_water_path', 'cloud_optical_thickness', 'cloud_effective_ra
 rois = 'cloud_mask'
 labels = 'cloud_layer_type'
 
+property_ranges = np.array([[0, 0, 0, 0, 10, 0, -150, 0, -150], [5000, 100, 100, 4, 1100, 18000, 50, 1, 50]])
+
+def class_pixel_collate(batch, label=7):
+    """ collate batch instances by stacking their pixels. Select only cloudy pixels of class <label>."""
+    
+    res = {'radiances': [], 'properties': []}
+
+    for instance in batch:
+
+        # select pixels belonging to class <label> that are cloudy and have valid property values
+        class_pixels = instance['labels'][0] == label
+        cloudy_pixels = instance['rois'][0] == 1
+        valid_pixels = np.sum(np.isnan(instance['properties']), 0) == 0
+
+        mask = valid_pixels & cloudy_pixels & class_pixels
+        nb_pixels = np.sum(mask)
+
+        for key, value in res.items():
+            value.append(instance[key].transpose(1, 2, 0)[mask].reshape(nb_pixels, -1))
+
+    return {key: torch.from_numpy(np.vstack(value)).float() for key, value in res.items()}
+
 def get_most_frequent_label(labelmask, dim=0):
 
     labels = np.argmax(labelmask, 0).astype(float)
@@ -139,26 +163,6 @@ def read_npz(npz_file):
     file = np.load(npz_file)
 
     return file['radiances'], file['properties'], file['cloud_mask'], file['labels']
-
-def class_pixel_collate(batch, label=7):
-    """ collate batch instances by stacking their pixels. Select only cloudy pixels of class <label>."""
-    
-    res = {'radiances': [], 'properties': []}
-
-    for instance in batch:
-
-        # select pixels belonging to class <label> that are cloudy and have valid property values
-        class_pixels = instance['labels'][0] == label
-        cloudy_pixels = instance['rois'][0] == 1
-        valid_pixels = np.sum(np.isnan(instance['properties']), 0) == 0
-
-        mask = valid_pixels & cloudy_pixels & class_pixels
-        nb_pixels = np.sum(mask)
-
-        for key, value in res.items():
-            value.append(instance[key].transpose(1, 2, 0)[mask].reshape(nb_pixels, -1))
-
-    return {key: torch.from_numpy(np.vstack(value)).float() for key, value in res.items()}
 
 class CumuloDataset(Dataset):
 
