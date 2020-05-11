@@ -2,17 +2,19 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader, random_split
 
-from src.datasets import class_pixel_collate, compute_scaler, CumuloDataset, Scaler
+from src.datasets import class_pixel_collate, compute_scaler, CumuloDataset, Scaler, property_ranges
 from src.optimization import evaluate, LinearRegressor, train_stochastic
 from src.property_analysis import distributions_from_labels, compute_bins
 from src.utils import load_model, save_as_npy, save_model
 
 path = "./datasets/cumulo-dc/"
 save_dir = "./results/latent-trees/"
+TRAIN_PROP = [0, 1]
+P = len(TRAIN_PROP)
 
 TREE_DEPTH = 2
 LR = 1e-3
-EPOCHS = 200
+EPOCHS = 100
 nb_classes = 2**TREE_DEPTH
 
 SEED = 2020
@@ -20,13 +22,13 @@ np.random.seed(SEED)
 torch.manual_seed(SEED)
 
 # load CUMULO, all radiances and LWP property
-dataset = CumuloDataset(path, ext="npz", prop_idx=[0])
+dataset = CumuloDataset(path, ext="npz", prop_idx=TRAIN_PROP)
 dataloader = DataLoader(dataset, batch_size=1, shuffle=True, collate_fn=class_pixel_collate)
 rad_preproc = compute_scaler(dataloader)
-prop_preproc = Scaler(np.array([0]), np.array([5000]))
+prop_preproc = Scaler(property_ranges[0, TRAIN_PROP], property_ranges[1, TRAIN_PROP])
 
 # reload data but rescaled and split in train, val, test
-dataset = CumuloDataset(path, rad_preproc=rad_preproc, prop_preproc=prop_preproc, ext="npz", prop_idx=[0])
+dataset = CumuloDataset(path, rad_preproc=rad_preproc, prop_preproc=prop_preproc, ext="npz", prop_idx=TRAIN_PROP)
 
 nb_tiles = len(dataset)
 train_size, test_size = int(0.7*nb_tiles), int(0.2*nb_tiles)
@@ -39,8 +41,8 @@ trainloader = DataLoader(train_dataset, batch_size=1, shuffle=True, collate_fn=c
 valloader = DataLoader(val_dataset, batch_size=1, shuffle=False, collate_fn=class_pixel_collate)
 testloader = DataLoader(test_dataset, batch_size=1, shuffle=False, collate_fn=class_pixel_collate)
 
-# 13 features, 1 property
-model = LinearRegressor(TREE_DEPTH, 13, 1, 1)
+# 13 features, P property
+model = LinearRegressor(TREE_DEPTH, 13, P, P)
 
 # init optimizer
 optimizer = torch.optim.SGD(model.parameters(), lr=LR, momentum=0.9)
