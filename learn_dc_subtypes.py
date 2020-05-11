@@ -2,19 +2,23 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader, random_split
 
-from src.datasets import class_pixel_collate, compute_scaler, CumuloDataset, Scaler, property_ranges
+from src.datasets import class_pixel_collate, compute_scaler, CumuloDataset, Scaler, property_ranges, properties
 from src.optimization import evaluate, LinearRegressor, train_stochastic
 from src.property_analysis import distributions_from_labels, compute_bins
-from src.utils import load_model, save_as_npy, save_model
+from src.utils import load_model, save_as_npz, save_model
 
 path = "./datasets/cumulo-dc/"
-save_dir = "./results/latent-trees/"
+save_dir = "./results/latent-trees/LWP-COT/"
+
+# LWP = 0, COT = 1
 TRAIN_PROP = [0, 1]
 P = len(TRAIN_PROP)
+bins = compute_bins([[0, 1, 51], [0, 1, 21]])
+# bins = compute_bins([[0, 1, 51]])
 
 TREE_DEPTH = 2
 LR = 1e-3
-EPOCHS = 100
+EPOCHS = 2
 nb_classes = 2**TREE_DEPTH
 
 SEED = 2020
@@ -85,15 +89,12 @@ test_loss, test_labels, test_properties = evaluate(testloader, best_model, crite
 print("test loss (epoch {}): {}".format(best_e, test_loss))
 print(np.histogram(train_labels, range(nb_classes+1)), np.histogram(val_labels, range(nb_classes+1)), np.histogram(test_labels, range(nb_classes+1)))
 
-# define LWP bins
-bins = compute_bins([[0, 1, 51]])
-
 distr_joint, distr_c, distr_s = {}, {}, {}
 distr_joint["train"], distr_c["train"], distr_s["train"] = distributions_from_labels(train_properties.T, train_labels, bins, nb_classes=nb_classes)
 distr_joint["val"], distr_c["val"], distr_s["val"] = distributions_from_labels(val_properties.T, val_labels, bins, nb_classes=nb_classes)
 distr_joint["test"], distr_c["test"], distr_s["test"] = distributions_from_labels(test_properties.T, test_labels, bins, nb_classes=nb_classes)
 
-save_as_npy(distr_joint, "P(s,c)", save_dir)
-save_as_npy(distr_s, "P(s)", save_dir)
-save_as_npy(distr_c, "P(c)", save_dir)
-save_as_npy(bins, "bins", save_dir, deep=False)
+save_as_npz(distr_joint, "P(s,c)", save_dir, [properties[i] for i in TRAIN_PROP])
+save_as_npz(distr_s, "P(s)", save_dir, [properties[i] for i in TRAIN_PROP])
+save_as_npz(distr_c, "P(c)", save_dir, [properties[i] for i in TRAIN_PROP])
+save_as_npz(bins, "bins", save_dir, [properties[i] for i in TRAIN_PROP], deep=False)

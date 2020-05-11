@@ -4,7 +4,7 @@ from sklearn.model_selection import train_test_split
 from src.classification import train_booster, predict_booster, save_model
 from src.datasets import CumuloDataset
 from src.property_analysis import distributions_from_labels, compute_bins
-from src.utils import save_as_npy
+from src.utils import save_as_npz
 
 save_dir = "results/lightgbm/"
 
@@ -56,9 +56,9 @@ distr_joint["train"], distr_c["train"], distr_s["train"] = distributions_from_la
 distr_joint["val"], distr_c["val"], distr_s["val"] = distributions_from_labels([val_lwps], val_y_pred, bins, nb_classes=2)
 distr_joint["test"], distr_c["test"], distr_s["test"] = distributions_from_labels([test_lwps], test_y_pred, bins, nb_classes=2)
 
-save_as_npy(distr_joint, "P(s,c)", save_dir)
-save_as_npy(distr_s, "P(s)", save_dir)
-save_as_npy(distr_c, "P(c)", save_dir)
-save_as_npy(bins, "bins", save_dir, deep=False)
+save_as_npz(distr_joint, "P(s,c)", save_dir, ['cloud_water_path'])
+save_as_npz(distr_s, "P(s)", save_dir, ['cloud_water_path'])
+save_as_npz(distr_c, "P(c)", save_dir, ['cloud_water_path'])
+save_as_npz(bins, "bins", save_dir, ['cloud_water_path'], deep=False)
 
 save_model(model, save_dir)

@@ -7,15 +7,17 @@ def make_directory(dir_path):
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
 
-def save_as_npy(data, flag, dirname, deep=True):
+def save_as_npz(data, flag, dirname, names, deep=True):
 
     make_directory(dirname)
 
     if deep:
         for key, item in data.items():
-            np.save(os.path.join(dirname, "{}-{}.npy".format(flag, key)), item)
+            d = {k:v for k, v in zip(names, item)}
+            np.savez(os.path.join(dirname, "{}-{}.npz".format(flag, key)), **d)
     else:
-        np.save(os.path.join(dirname, "{}.npy".format(flag)), data)
+        d = {k:v for k, v in zip(names, data)}
+        np.savez(os.path.join(dirname, "{}.npz".format(flag)), **d)
 
 def load_model(model_dir):
     
