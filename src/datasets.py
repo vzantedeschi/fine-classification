@@ -115,7 +115,7 @@ properties = ['cloud_water_path', 'cloud_optical_thickness', 'cloud_effective_ra
 rois = 'cloud_mask'
 labels = 'cloud_layer_type'
 
-property_ranges = np.array([[0, 0, 0, 0, 10, 0, -150, 0, -150], [5000, 100, 100, 4, 1100, 18000, 50, 1, 50]])
+property_ranges = np.array([[0, 0, 0, 0, 10, 0, -150, 0, -150], [5000, 100, 100, 4, 800, 18000, 50, 1, 50]])
 
 def class_pixel_collate(batch, label=7):
     """ collate batch instances by stacking their pixels. Select only cloudy pixels of class <label>."""
@@ -129,7 +129,7 @@ def class_pixel_collate(batch, label=7):
         cloudy_pixels = instance['rois'][0] == 1
         valid_pixels = np.sum(np.isnan(instance['properties']), 0) == 0
 
-        mask = valid_pixels & cloudy_pixels & class_pixels
+        mask = cloudy_pixels & class_pixels & valid_pixels
         nb_pixels = np.sum(mask)
 
         for key, value in res.items():

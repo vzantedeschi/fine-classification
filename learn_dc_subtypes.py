@@ -8,17 +8,17 @@ from src.property_analysis import distributions_from_labels, compute_bins
 from src.utils import load_model, save_as_npz, save_model
 
 path = "./datasets/cumulo-dc/"
-save_dir = "./results/latent-trees/LWP-COT/"
+save_dir = "./results/latent-trees/LWP-CTP/"
 
-# LWP = 0, COT = 1
-TRAIN_PROP = [0, 1]
+# LWP = 0, COT = 1, CTP = 4
+TRAIN_PROP = [0, 4]
 P = len(TRAIN_PROP)
-bins = compute_bins([[0, 1, 51], [0, 1, 21]])
+bins = compute_bins([[0, 1, 51], [0, 1, 51]])
 # bins = compute_bins([[0, 1, 51]])
 
 TREE_DEPTH = 2
 LR = 1e-3
-EPOCHS = 2
+EPOCHS = 400
 nb_classes = 2**TREE_DEPTH
 
 SEED = 2020
@@ -28,6 +28,7 @@ torch.manual_seed(SEED)
 # load CUMULO, all radiances and LWP property
 dataset = CumuloDataset(path, ext="npz", prop_idx=TRAIN_PROP)
 dataloader = DataLoader(dataset, batch_size=1, shuffle=True, collate_fn=class_pixel_collate)
+
 rad_preproc = compute_scaler(dataloader)
 prop_preproc = Scaler(property_ranges[0, TRAIN_PROP], property_ranges[1, TRAIN_PROP])
 
@@ -41,11 +42,11 @@ val_size = nb_tiles - train_size - test_size
 train_dataset, val_dataset, test_dataset = random_split(dataset, [train_size, val_size, test_size])
 
 # data loaders
-trainloader = DataLoader(train_dataset, batch_size=1, shuffle=True, collate_fn=class_pixel_collate)
-valloader = DataLoader(val_dataset, batch_size=1, shuffle=False, collate_fn=class_pixel_collate)
-testloader = DataLoader(test_dataset, batch_size=1, shuffle=False, collate_fn=class_pixel_collate)
+trainloader = DataLoader(train_dataset, batch_size=2, shuffle=True, collate_fn=class_pixel_collate)
+valloader = DataLoader(val_dataset, batch_size=2, shuffle=False, collate_fn=class_pixel_collate)
+testloader = DataLoader(test_dataset, batch_size=2, shuffle=False, collate_fn=class_pixel_collate)
 
-# 13 features, P property
+# 13 features, P properties
 model = LinearRegressor(TREE_DEPTH, 13, P, P)
 
 # init optimizer
@@ -56,7 +57,7 @@ criterion = torch.nn.MSELoss(reduction="mean")
 
 state = {
     'tile-size': 1,
-    'batch-size': 1,
+    'batch-size': 2,
     'classifier': 'linear',
     'loss-function': 'MSE',
     'learning-rate': LR,
@@ -67,7 +68,7 @@ state = {
 }
 
 best_val_loss = float("inf")
-
+best_e = -1
 for e in range(EPOCHS):
     train_stochastic(trainloader, model, optimizer, criterion)
 
