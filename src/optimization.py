@@ -285,11 +285,13 @@ def train_batch(x, y, bst_depth=2, nb_iter=1e4, lr=5e-1, pruning=True, reg=1e-1,
 
     return model
 
-def train_stochastic(dataloader, model, optimizer, criterion):
+def train_stochastic(dataloader, model, optimizer, criterion, epoch, pruning=True, reg=1, norm=float("inf"), monitor=None):
 
     model.train()
 
-    train_loss = 0.
+    last_iter = epoch * len(dataloader)
+
+    train_obj = 0.
     pbar = tqdm(dataloader)
     for i, batch in enumerate(pbar):
 
@@ -299,14 +301,28 @@ def train_stochastic(dataloader, model, optimizer, criterion):
 
         loss = criterion(pred, batch["properties"])
 
-        loss.backward()
-        train_loss += loss.detach().numpy()
+        if pruning:
+
+            obj = loss + reg * torch.norm(model.sparseMAP.eta, p=norm)
+            train_obj += obj.detach().numpy()
+
+            pbar.set_description("avg train loss + reg %f" % (train_obj / (i + 1)))
+
+        else:
+
+            obj = loss
+            train_obj += obj.detach().numpy()
+
+            pbar.set_description("avg train loss %f" % (train_obj / (i + 1)))
+
+        obj.backward()
 
         optimizer.step()
 
-        pbar.set_description("train loss %f" % (train_loss / (i + 1)))
+        if monitor:
+            monitor.write(model, i + last_iter, train={"Loss": loss.detach()})
 
-def evaluate(dataloader, model, criterion, classify=False):
+def evaluate(dataloader, model, criterion, epoch=None, monitor=None, classify=False):
 
     model.eval()
 
@@ -319,13 +335,16 @@ def evaluate(dataloader, model, criterion, classify=False):
         pred = model(batch["radiances"], batch["properties"])
 
         loss = criterion(pred, batch["properties"])
-        total_loss += loss.detach().numpy()
+        total_loss += loss.detach()
 
         if classify:
             predictions.append(model.predict_bst(batch["properties"]))
             properties.append(batch["properties"].detach().numpy())
 
+    if monitor:
+        monitor.write(model, epoch, val={"Loss": total_loss})
+
     if classify:
-        return total_loss / len(dataloader), np.hstack(predictions), np.vstack(properties)
+        return total_loss.numpy() / len(dataloader), np.hstack(predictions), np.vstack(properties)
     else:
-        return total_loss / len(dataloader)
+        return total_loss.numpy() / len(dataloader)
