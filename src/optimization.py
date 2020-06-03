@@ -320,7 +320,7 @@ def train_stochastic(dataloader, model, optimizer, criterion, epoch, pruning=Tru
         optimizer.step()
 
         if monitor:
-            monitor.write(model, i + last_iter, train={"Loss": loss.detach()})
+            monitor.write(model, i + last_iter, check_pruning=True, train={"Loss": loss.detach()})
 
 def evaluate(dataloader, model, criterion, epoch=None, monitor=None, classify=False):
 
