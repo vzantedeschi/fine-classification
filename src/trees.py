@@ -1,7 +1,6 @@
 import numpy as np
 
 from functools import reduce
-
 class BinarySearchTree():
 
     def __init__(self, depth=2):
@@ -30,7 +29,14 @@ class BinarySearchTree():
         self.desc_right = range(2, self.nb_nodes, 2)
 
     def __str__(self):
-        return bst_to_string(self.nodes)
+        return str_as_bst(self.nodes)
+
+    def parent(self, n):
+        
+        if n == 0 or n >= self.nb_nodes:
+            return None
+
+        return (n - 1) // 2
 
     def predict(self, z):
         """ each leaf corresponds to a class """
