@@ -208,6 +208,9 @@ class LinearRegressor(torch.nn.Module):
         # init predictor ( [x1;z]-> y )
         self.predictor = LinearRegression(in_size1 + 1 + self.sparseMAP.bst.nb_nodes, out_size)
 
+        self.in_prop_size = in_size2
+        self.out_prop_size = out_size
+
     def eval(self):
         self.sparseMAP.eval()
         self.predictor.eval()
@@ -242,48 +245,6 @@ class LinearRegressor(torch.nn.Module):
     def train(self):
         self.sparseMAP.train()
         self.predictor.train()
-
-def train_batch(x, y, bst_depth=2, nb_iter=1e4, lr=5e-1, pruning=True, reg=1e-1, norm=1):
-
-    n, d = x.shape
-
-    model = BinaryClassifier(bst_depth, d + 1, pruned=pruning)
-    monitor = MonitorTree(pruning, "runs/norm={}/reg={}/".format(norm, reg))
-
-    # init optimizer
-    optimizer = torch.optim.SGD(model.parameters(), lr=lr)
-
-    # init loss
-    criterion = torch.nn.BCELoss(reduction="mean")
-
-    # cast to pytorch Tensors
-    t_y = torch.from_numpy(y[:, None]).float()
-    t_x = torch.from_numpy(x).float()
-
-    model.train()
-
-    pbar = tqdm(range(int(nb_iter)))
-    for i in pbar:
-
-        # print(model.sparseMAP.eta.detach().numpy())
-        optimizer.zero_grad()
-
-        y_pred = model(t_x)
-
-        bce = criterion(y_pred, t_y)
-        if pruning:
-            loss = bce + reg * torch.norm(model.sparseMAP.eta, p=norm)
-
-        loss.backward()
-        
-        optimizer.step()
-
-        pbar.set_description("train BCE + reg %s" % loss.detach().numpy())
-        monitor.write(model, i, train={"BCELoss": bce})
-
-    monitor.close()
-
-    return model
 
 def train_stochastic(dataloader, model, optimizer, criterion, epoch, pruning=True, reg=1, norm=float("inf"), monitor=None):
 
