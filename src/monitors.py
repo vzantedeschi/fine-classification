@@ -18,14 +18,14 @@ class MonitorTree():
 
         if self.pruning and check_pruning:
 
-            self.writer.add_scalars('variables/eta_group', 
+            self.writer.add_scalars('tree/eta_group', 
                 {"linf": torch.norm(model.sparseMAP.eta, p=float('inf')),
                  "l1": torch.norm(model.sparseMAP.eta, p=1), 
                  "l0": torch.norm(model.sparseMAP.eta, p=0),
                  # "eta": model.sparseMAP.eta,
                  }, it)
 
-            self.writer.add_scalars('variables/d_group', 
+            self.writer.add_scalars('tree/d_group', 
                 {"linf": torch.norm(model.sparseMAP.d, p=float('inf')),
                  "l1": torch.norm(model.sparseMAP.d, p=1), 
                  "l0": torch.norm(model.sparseMAP.d, p=0),
