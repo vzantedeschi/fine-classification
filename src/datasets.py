@@ -79,21 +79,22 @@ properties = ['cloud_water_path', 'cloud_optical_thickness', 'cloud_effective_ra
 rois = 'cloud_mask'
 labels = 'cloud_layer_type'
 
-property_ranges = np.array([[0, 0, 0, 0, 10, 0, -150, 0, -150], [5000, 100, 100, 4, 800, 18000, 50, 1, 50]])
+property_ranges = np.array([[0, 0, 0, 0, 10, 0, 260, 0, 260], [5000, 100, 100, 4, 800, 18000, 320, 1, 320]])
 
 def class_pixel_collate(batch, label=7):
     """ collate batch instances by stacking their pixels. Select only cloudy pixels of class <label>."""
     
-    res = {'radiances': [], 'properties': []}
+    res = {'radiances': [], 'properties': [], 'test_properties': []}
 
     for instance in batch:
 
         # select pixels belonging to class <label> that are cloudy and have valid property values
         class_pixels = instance['labels'][0] == label
         cloudy_pixels = instance['rois'][0] == 1
-        valid_pixels = np.sum(np.isnan(instance['properties']), 0) == 0
+        valid_pixels1 = np.sum(np.isnan(instance['properties']), 0) == 0
+        valid_pixels2 = np.sum(np.isnan(instance['test_properties']), 0) == 0
 
-        mask = cloudy_pixels & class_pixels & valid_pixels
+        mask = cloudy_pixels & class_pixels & valid_pixels1 & valid_pixels2
         nb_pixels = np.sum(mask)
 
         for key, value in res.items():
@@ -130,7 +131,7 @@ def read_npz(npz_file):
 
 class CumuloDataset(Dataset):
 
-    def __init__(self, root_dir, rad_preproc=None, prop_preproc=None, ext="npz", prop_idx=None):
+    def __init__(self, root_dir, ext="npz", **kwargs):
         
         self.root_dir = root_dir
         self.ext = ext
@@ -140,9 +141,9 @@ class CumuloDataset(Dataset):
         if len(self.file_paths) == 0:
             raise FileNotFoundError("no " + ext + " files in", self.root_dir)
 
-        self.rad_preproc = rad_preproc
-        self.prop_preproc = prop_preproc
-        self.prop_idx = prop_idx
+        for key in ["rad_preproc", "prop_preproc", "test_prop_preproc", "prop_idx", "test_prop_idx"]:
+            value = kwargs.pop(key, None)
+            self.__dict__.update({key: value})
 
     def __len__(self):
 
@@ -158,16 +159,27 @@ class CumuloDataset(Dataset):
         elif self.ext == "nc":
             radiances, properties, rois, labels = read_nc(filename)
 
-        if self.rad_preproc is not None:
+        if self.rad_preproc:
             radiances = self.rad_preproc(radiances)
 
-        if self.prop_idx is not None:
-            properties = properties[self.prop_idx]
+        if self.prop_idx:
+            train_properties = properties[self.prop_idx]
+        else:
+            train_properties = properties
 
-        if self.prop_preproc is not None:
-            properties = self.prop_preproc(properties)
+        if self.prop_preproc:
+            train_properties = self.prop_preproc(train_properties)
 
-        return {"filename": filename, "radiances": radiances, "properties": properties, "rois": rois, "labels": labels}
+        if self.test_prop_idx:
+            test_properties = properties[self.test_prop_idx]
+
+            if self.test_prop_preproc:
+                test_properties = self.test_prop_preproc(test_properties)
+
+        else:
+            test_properties = train_properties
+
+        return {"filename": filename, "radiances": radiances, "properties": train_properties, "test_properties": test_properties, "rois": rois, "labels": labels}
 
     def __str__(self):
         return 'CUMULO'

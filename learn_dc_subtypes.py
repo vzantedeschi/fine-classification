@@ -8,36 +8,38 @@ from src.optimization import evaluate, LinearRegressor, train_stochastic
 from src.property_analysis import distributions_from_labels, compute_bins
 from src.utils import load_model, save_as_npz, save_model
 
-path = "./datasets/cumulo-dc/"
-save_dir = "./results/latent-trees/LWP-CTP/"
+dataset_path = "./datasets/cumulo-dc/"
 
-# LWP = 0, COT = 1, CTP = 4
+# LWP = 0, COT = 1, CTP = 4, ST = 8
 TRAIN_PROP = [0, 4]
-P = len(TRAIN_PROP)
-bins = compute_bins([[0, 1, 51], [0, 1, 51]])
-# bins = compute_bins([[0, 1, 51]])
+TEST_PROP = [8]
+
+bins = compute_bins([[0, 1, 51], [0, 1, 51], [0, 1, 51]])
 
 TREE_DEPTH = 2
 LR = 1e-3
-EPOCHS = 2
+EPOCHS = 30
 nb_classes = 2**TREE_DEPTH
 
 PRUNING = True
-REG = 1
+REG = 10
+
+save_dir = "./results/dc-subtypes/LWP-CTP/latent-trees/depth={}/reg={}/".format(TREE_DEPTH, REG)
 
 SEED = 2020
 np.random.seed(SEED)
 torch.manual_seed(SEED)
 
-# load CUMULO, all radiances and LWP property
-dataset = CumuloDataset(path, ext="npz", prop_idx=TRAIN_PROP)
+# load CUMULO, all radiances and selected properties
+dataset = CumuloDataset(dataset_path, ext="npz", prop_idx=TRAIN_PROP, test_prop_idx=TEST_PROP)
 dataloader = DataLoader(dataset, batch_size=1, shuffle=True, collate_fn=class_pixel_collate)
 
 rad_preproc = compute_scaler(dataloader)
 prop_preproc = Scaler(property_ranges[0, TRAIN_PROP], property_ranges[1, TRAIN_PROP])
+test_prop_preproc = Scaler(property_ranges[0, TEST_PROP], property_ranges[1, TEST_PROP])
 
 # reload data but rescaled and split in train, val, test
-dataset = CumuloDataset(path, rad_preproc=rad_preproc, prop_preproc=prop_preproc, ext="npz", prop_idx=TRAIN_PROP)
+dataset = CumuloDataset(dataset_path, ext="npz", rad_preproc=rad_preproc, prop_preproc=prop_preproc, test_prop_preproc=test_prop_preproc, prop_idx=TRAIN_PROP, test_prop_idx=TEST_PROP)
 
 nb_tiles = len(dataset)
 train_size, test_size = int(0.7*nb_tiles), int(0.2*nb_tiles)
@@ -50,8 +52,8 @@ trainloader = DataLoader(train_dataset, batch_size=2, shuffle=True, collate_fn=c
 valloader = DataLoader(val_dataset, batch_size=2, shuffle=False, collate_fn=class_pixel_collate)
 testloader = DataLoader(test_dataset, batch_size=2, shuffle=False, collate_fn=class_pixel_collate)
 
-# 13 features, P properties
-model = LinearRegressor(TREE_DEPTH, 13, P, P, pruned=PRUNING)
+# 13 features, train properties => test properties
+model = LinearRegressor(TREE_DEPTH, 13, len(TRAIN_PROP), len(TEST_PROP), pruned=PRUNING)
 
 # init optimizer
 optimizer = torch.optim.SGD(model.parameters(), lr=LR, momentum=0.9)
@@ -60,7 +62,7 @@ optimizer = torch.optim.SGD(model.parameters(), lr=LR, momentum=0.9)
 criterion = torch.nn.MSELoss(reduction="mean")
 
 # init train-eval monitoring 
-monitor = MonitorTree(PRUNING, "dc-subtypes/depth={}/reg={}/".format(TREE_DEPTH, REG))
+monitor = MonitorTree(PRUNING, save_dir)
 
 state = {
     'tile-size': 1,
@@ -70,8 +72,10 @@ state = {
     'learning-rate': LR,
     'seed': SEED,
     'tree-depth': TREE_DEPTH,
-    'dataset': path,
+    'dataset': dataset_path,
     'properties': 'LWP', 
+    'pruning': PRUNING,
+
 }
 
 best_val_loss = float("inf")
@@ -88,7 +92,6 @@ for e in range(EPOCHS):
         save_model(model, optimizer, state, save_dir)
 
 monitor.close()
-
 print("best validation loss (epoch {}): {}\n".format(best_e, best_val_loss))
 
 best_model = load_model(save_dir)
@@ -104,7 +107,7 @@ distr_joint["train"], distr_c["train"], distr_s["train"] = distributions_from_la
 distr_joint["val"], distr_c["val"], distr_s["val"] = distributions_from_labels(val_properties.T, val_labels, bins, nb_classes=nb_classes)
 distr_joint["test"], distr_c["test"], distr_s["test"] = distributions_from_labels(test_properties.T, test_labels, bins, nb_classes=nb_classes)
 
-save_as_npz(distr_joint, "P(s,c)", save_dir, [properties[i] for i in TRAIN_PROP])
-save_as_npz(distr_s, "P(s)", save_dir, [properties[i] for i in TRAIN_PROP])
-save_as_npz(distr_c, "P(c)", save_dir, [properties[i] for i in TRAIN_PROP])
-save_as_npz(bins, "bins", save_dir, [properties[i] for i in TRAIN_PROP], deep=False)
+save_as_npz(distr_joint, "P(s,c)", save_dir, [properties[i] for i in TRAIN_PROP + TEST_PROP])
+save_as_npz(distr_s, "P(s)", save_dir, [properties[i] for i in TRAIN_PROP + TEST_PROP])
+save_as_npz(distr_c, "P(c)", save_dir, [properties[i] for i in TRAIN_PROP + TEST_PROP])
+save_as_npz(bins, "bins", save_dir, [properties[i] for i in TRAIN_PROP + TEST_PROP], deep=False)

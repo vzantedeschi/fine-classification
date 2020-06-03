@@ -208,9 +208,6 @@ class LinearRegressor(torch.nn.Module):
         # init predictor ( [x1;z]-> y )
         self.predictor = LinearRegression(in_size1 + 1 + self.sparseMAP.bst.nb_nodes, out_size)
 
-        self.in_prop_size = in_size2
-        self.out_prop_size = out_size
-
     def eval(self):
         self.sparseMAP.eval()
         self.predictor.eval()
@@ -260,7 +257,7 @@ def train_stochastic(dataloader, model, optimizer, criterion, epoch, pruning=Tru
 
         pred = model(batch["radiances"], batch["properties"])
 
-        loss = criterion(pred, batch["properties"])
+        loss = criterion(pred, batch["test_properties"])
 
         if pruning:
 
@@ -295,12 +292,12 @@ def evaluate(dataloader, model, criterion, epoch=None, monitor=None, classify=Fa
 
         pred = model(batch["radiances"], batch["properties"])
 
-        loss = criterion(pred, batch["properties"])
+        loss = criterion(pred, batch["test_properties"])
         total_loss += loss.detach()
 
         if classify:
             predictions.append(model.predict_bst(batch["properties"]))
-            properties.append(batch["properties"].detach().numpy())
+            properties.append(torch.cat((batch["properties"], batch["test_properties"]), 1).detach().numpy())
 
     if monitor:
         monitor.write(model, epoch, val={"Loss": total_loss})
