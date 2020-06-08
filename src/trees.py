@@ -38,10 +38,9 @@ class BinarySearchTree():
 
         return (n - 1) // 2
 
-    def predict(self, z):
+    def predict(self, paths):
         """ each leaf corresponds to a class """
-
-        labels = np.argmax(z[:, self.leaves], 1)
+        labels = np.argmax(paths[:, self.leaves], 1)
 
         return labels
 

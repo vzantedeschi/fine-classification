@@ -97,8 +97,9 @@ def class_pixel_collate(batch, label=7):
         mask = cloudy_pixels & class_pixels & valid_pixels1 & valid_pixels2
         nb_pixels = np.sum(mask)
 
-        for key, value in res.items():
-            value.append(instance[key].transpose(1, 2, 0)[mask].reshape(nb_pixels, -1))
+        if nb_pixels > 0:
+            for key, value in res.items():
+                value.append(instance[key].transpose(1, 2, 0)[mask].reshape(nb_pixels, -1))
 
     return {key: torch.from_numpy(np.vstack(value)).float() for key, value in res.items()}
 

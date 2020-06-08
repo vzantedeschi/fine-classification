@@ -11,30 +11,31 @@ from src.utils import load_model, save_as_npz, save_model
 dataset_path = "./datasets/cumulo-dc/"
 
 # LWP = 0, COT = 1, CTP = 4, ST = 8
-TRAIN_PROP = [0, 4]
-TEST_PROP = [8]
+TRAIN_PROP = [4]
+TEST_PROP = [0, 8]
 
 bins = compute_bins([[0, 1, 51], [0, 1, 51], [0, 1, 51]])
 
 TREE_DEPTH = 2
 LR = 1e-3
-EPOCHS = 30
+EPOCHS = 100
 nb_classes = 2**TREE_DEPTH
 
-PRUNING = True
-REG = 10
+REG = 0
+PRUNING = REG > 0
 
-save_dir = "./results/dc-subtypes/LWP-CTP/latent-trees/depth={}/reg={}/".format(TREE_DEPTH, REG)
+save_dir = "./results/dc-subtypes/CTP/latent-trees/depth={}/reg={}/".format(TREE_DEPTH, REG)
 
 SEED = 2020
 np.random.seed(SEED)
 torch.manual_seed(SEED)
 
-# load CUMULO, all radiances and selected properties
-dataset = CumuloDataset(dataset_path, ext="npz", prop_idx=TRAIN_PROP, test_prop_idx=TEST_PROP)
-dataloader = DataLoader(dataset, batch_size=1, shuffle=True, collate_fn=class_pixel_collate)
+# # load CUMULO, all radiances and selected properties
+# dataset = CumuloDataset(dataset_path, ext="npz", prop_idx=TRAIN_PROP, test_prop_idx=TEST_PROP)
+# dataloader = DataLoader(dataset, batch_size=1, shuffle=True, collate_fn=class_pixel_collate)
 
-rad_preproc = compute_scaler(dataloader)
+# rad_preproc = compute_scaler(dataloader)
+rad_preproc = None
 prop_preproc = Scaler(property_ranges[0, TRAIN_PROP], property_ranges[1, TRAIN_PROP])
 test_prop_preproc = Scaler(property_ranges[0, TEST_PROP], property_ranges[1, TEST_PROP])
 
@@ -53,7 +54,7 @@ valloader = DataLoader(val_dataset, batch_size=2, shuffle=False, collate_fn=clas
 testloader = DataLoader(test_dataset, batch_size=2, shuffle=False, collate_fn=class_pixel_collate)
 
 # 13 features, train properties => test properties
-model = LinearRegressor(TREE_DEPTH, 13, len(TRAIN_PROP), len(TEST_PROP), pruned=PRUNING)
+model = LinearRegressor(TREE_DEPTH, len(TRAIN_PROP), len(TEST_PROP), pruned=PRUNING)
 
 # init optimizer
 optimizer = torch.optim.SGD(model.parameters(), lr=LR, momentum=0.9)

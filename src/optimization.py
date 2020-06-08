@@ -21,6 +21,10 @@ class LinearRegression(torch.nn.Module):
         
         return self.linear(x)
 
+    def predict(self, x):
+
+        return self.forward(x)
+
 class LogisticRegression(torch.nn.Module):
     
     def __init__(self, in_size, out_size):
@@ -67,9 +71,37 @@ class LPSparseMAP(torch.nn.Module):
 
     def predict(self, x):
 
-        z = self.forward(x).detach().numpy()
+        q = self._compute_q(x)
+        
+        if self.pruned:
 
-        return self.bst.predict(z)
+            z = torch.clamp(q, 0, 1)
+            z = torch.min(z, self.d)
+
+        else:
+            z = torch.clamp(q, 0, 1)
+
+        return z
+
+    def predict_bst(self, x):
+
+        q = self._compute_q(x)
+        
+        if self.pruned:
+
+            z = torch.clamp(q, 0, 1)
+            z = torch.min(z, self.d)
+
+        else:
+            z = torch.clamp(q, 0, 1)
+
+        # XA = torch.mm(x, self.A.T)
+        # q = torch.ones((len(x), self.bst.nb_nodes))
+
+        # q[:, self.bst.desc_left] = XA[:, self.bst.split_nodes]
+        # q[:, self.bst.desc_right] = -XA[:, self.bst.split_nodes]
+
+        return self.bst.predict(z.detach().numpy())
 
     def _compute_d(self, q):
         
@@ -190,7 +222,7 @@ class BinaryClassifier(torch.nn.Module):
         # add offset
         x = torch.cat((X, torch.ones((len(X), 1))), 1)
 
-        return self.sparseMAP.predict(x)
+        return self.sparseMAP.predict_bst(x)
 
     def train(self):
         self.sparseMAP.train()
@@ -198,46 +230,46 @@ class BinaryClassifier(torch.nn.Module):
 
 class LinearRegressor(torch.nn.Module):
 
-    def __init__(self, bst_depth, in_size1, in_size2, out_size, pruned=True):
+    def __init__(self, bst_depth, in_size, out_size, pruned=True):
 
         super(LinearRegressor, self).__init__()
 
-        # init latent tree optimizer (x2 -> z)
-        self.sparseMAP = LPSparseMAP(bst_depth, in_size2 + 1, pruned)
+        # init latent tree optimizer (x -> z)
+        self.sparseMAP = LPSparseMAP(bst_depth, in_size + 1, pruned)
 
-        # init predictor ( [x1;z]-> y )
-        self.predictor = LinearRegression(in_size1 + 1 + self.sparseMAP.bst.nb_nodes, out_size)
+        # init predictor ( z -> y )
+        self.predictor = LinearRegression(self.sparseMAP.bst.nb_nodes, out_size)
 
     def eval(self):
         self.sparseMAP.eval()
         self.predictor.eval()
 
-    def forward(self, X1, X2):
+    def forward(self, X):
         
         # add offset
-        x1 = torch.cat((X1, torch.ones((len(X1), 1))), 1)
-        x2 = torch.cat((X2, torch.ones((len(X2), 1))), 1)
+        x = torch.cat((X, torch.ones((len(X), 1))), 1)
 
-        z = self.sparseMAP(x2)
+        z = self.sparseMAP(x)
 
-        xz = torch.cat((x1, z), 1)
-
-        return self.predictor(xz)
+        return self.predictor(z)
 
     def parameters(self):
         return list(self.sparseMAP.parameters()) + list(self.predictor.parameters())
 
-    def predict(self, X1, X2):
+    def predict(self, X):
 
-        y_pred = self.forward(X1, X2)
+        # add offset
+        x = torch.cat((X, torch.ones((len(X), 1))), 1)
 
-        return y_pred.detach()
+        z = self.sparseMAP.predict(x)
 
-    def predict_bst(self, X2):
+        return self.predictor(z).detach()
 
-        x2 = torch.cat((X2, torch.ones((len(X2), 1))), 1)
+    def predict_bst(self, X):
 
-        return self.sparseMAP.predict(x2)
+        x = torch.cat((X, torch.ones((len(X), 1))), 1)
+
+        return self.sparseMAP.predict_bst(x)
 
     def train(self):
         self.sparseMAP.train()
@@ -255,7 +287,7 @@ def train_stochastic(dataloader, model, optimizer, criterion, epoch, pruning=Tru
 
         optimizer.zero_grad()
 
-        pred = model(batch["radiances"], batch["properties"])
+        pred = model(batch["properties"])
 
         loss = criterion(pred, batch["test_properties"])
 
@@ -290,7 +322,7 @@ def evaluate(dataloader, model, criterion, epoch=None, monitor=None, classify=Fa
     
     for i, batch in enumerate(dataloader):
 
-        pred = model(batch["radiances"], batch["properties"])
+        pred = model.predict(batch["properties"])
 
         loss = criterion(pred, batch["test_properties"])
         total_loss += loss.detach()
