@@ -7,7 +7,7 @@ import torch
 from src.trees import BinarySearchTree
 from src.monitors import MonitorTree
 
-# ----------------------------------------------------------------------- LINEAR REGRESSION
+# ----------------------------------------------------------------------- BASELINES - REGRESSION
 
 class LinearRegression(torch.nn.Module):
     
@@ -20,6 +20,10 @@ class LinearRegression(torch.nn.Module):
     def forward(self, x):
         
         return self.linear(x)
+
+    def predict(self, x):
+
+        return self.forward(x)
 
 class LogisticRegression(torch.nn.Module):
     
@@ -34,6 +38,33 @@ class LogisticRegression(torch.nn.Module):
         y_pred = torch.sigmoid(self.linear(x))
         
         return y_pred
+
+    def predict(self, x):
+
+        return self.forward(x)
+
+class NonLinearRegression(torch.nn.Module):
+    
+    def __init__(self, in_size, out_size):
+        
+        super(NonLinearRegression, self).__init__()
+
+        self.network = []
+        self.network.append(torch.nn.Linear(in_size, in_size, bias=True))
+        self.network.append(torch.nn.ReLU())
+        self.network.append(torch.nn.Linear(in_size, in_size, bias=True))
+        self.network.append(torch.nn.ReLU())
+        self.network.append(torch.nn.Linear(in_size, out_size, bias=True))
+
+        self.network = torch.nn.Sequential(*self.network)
+
+    def forward(self, x1, x2):
+        
+        return self.network(torch.cat((x1, x2), 1))
+
+    def predict(self, x1, x2):
+
+        return self.forward(x1, x2)
 
 # ----------------------------------------------------------------------- LATENT TREES REGRESSION
 
