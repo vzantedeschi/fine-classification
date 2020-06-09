@@ -3,8 +3,9 @@ import torch
 from torch.utils.data import DataLoader, random_split
 
 from src.datasets import class_pixel_collate, compute_scaler, CumuloDataset, Scaler, property_ranges, properties
+from src.LT_models import LinearRegressor
 from src.monitors import MonitorTree
-from src.optimization import evaluate, LinearRegressor, train_stochastic
+from src.optimization import evaluate, train_stochastic
 from src.property_analysis import distributions_from_labels, compute_bins
 from src.utils import load_model, save_as_npz, save_model
 

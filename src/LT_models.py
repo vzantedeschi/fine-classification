@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 
+from src.baselines import LinearRegression, LogisticRegression
 from src.trees import BinarySearchTree
 
 # ----------------------------------------------------------------------- LATENT TREES REGRESSION
