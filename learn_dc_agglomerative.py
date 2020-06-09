@@ -57,7 +57,7 @@ model = AgglomerativeRegressor(nb_classes, 13, len(TRAIN_PROP), len(TEST_PROP))
 optimizer = torch.optim.SGD(model.parameters(), lr=LR, momentum=0.9)
 
 # init loss
-criterion = torch.nn.MSELoss(reduction="mean")
+criterion = torch.nn.MSELoss(reduction="sum")
 
 # init train-eval monitoring 
 monitor = MonitorTree(False, save_dir)

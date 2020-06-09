@@ -60,7 +60,7 @@ model = LinearRegressor(TREE_DEPTH, 13, len(TRAIN_PROP), len(TEST_PROP), pruned=
 optimizer = torch.optim.SGD(model.parameters(), lr=LR, momentum=0.9)
 
 # init loss
-criterion = torch.nn.MSELoss(reduction="mean")
+criterion = torch.nn.MSELoss(reduction="sum")
 
 # init train-eval monitoring 
 monitor = MonitorTree(PRUNING, save_dir)

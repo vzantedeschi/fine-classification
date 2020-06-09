@@ -18,20 +18,22 @@ def train_stochastic(dataloader, model, optimizer, criterion, epoch, pruning=Tru
 
         optimizer.zero_grad()
 
+        nb_instances = len(batch["radiances"]) 
+
         pred = model(batch["radiances"], batch["properties"])
 
         loss = criterion(pred, batch["test_properties"])
 
         if pruning:
 
-            obj = loss + reg * torch.norm(model.sparseMAP.eta, p=norm)
+            obj = loss / nb_instances + reg * torch.norm(model.sparseMAP.eta, p=norm)
             train_obj += obj.detach().numpy()
 
             pbar.set_description("avg train loss + reg %f" % (train_obj / (i + 1)))
 
         else:
 
-            obj = loss
+            obj = loss / nb_instances
             train_obj += obj.detach().numpy()
 
             pbar.set_description("avg train loss %f" % (train_obj / (i + 1)))
@@ -41,7 +43,7 @@ def train_stochastic(dataloader, model, optimizer, criterion, epoch, pruning=Tru
         optimizer.step()
 
         if monitor:
-            monitor.write(model, i + last_iter, check_pruning=False, train={"Loss": loss.detach()})
+            monitor.write(model, i + last_iter, check_pruning=False, train={"Loss": loss.detach() / nb_instances})
 
 def evaluate(dataloader, model, criterion, epoch=None, monitor=None, classify=False):
 
@@ -51,8 +53,10 @@ def evaluate(dataloader, model, criterion, epoch=None, monitor=None, classify=Fa
     predictions = []
     properties = []
     
+    nb_instances = 0
     for i, batch in enumerate(dataloader):
 
+        nb_instances += len(batch["radiances"])
         pred = model(batch["radiances"], batch["properties"])
 
         loss = criterion(pred, batch["test_properties"])
@@ -63,9 +67,9 @@ def evaluate(dataloader, model, criterion, epoch=None, monitor=None, classify=Fa
             properties.append(torch.cat((batch["properties"], batch["test_properties"]), 1).detach().numpy())
 
     if monitor:
-        monitor.write(model, epoch, val={"Loss": total_loss})
+        monitor.write(model, epoch, val={"Loss": total_loss / nb_instances})
 
     if classify:
-        return total_loss.numpy() / len(dataloader), np.hstack(predictions), np.vstack(properties)
+        return total_loss.numpy() / nb_instances, np.hstack(predictions), np.vstack(properties)
     else:
-        return total_loss.numpy() / len(dataloader)
+        return total_loss.numpy() / nb_instances
