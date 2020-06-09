@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader, random_split
 from src.baselines import AgglomerativeRegressor
 from src.datasets import class_pixel_collate, compute_scaler, CumuloDataset, Scaler, property_ranges, properties
 from src.monitors import MonitorTree
-from src.optimization import evaluate, LinearRegression, train_stochastic
+from src.optimization import evaluate, train_stochastic
 from src.property_analysis import distributions_from_labels, compute_bins
 from src.utils import load_model, save_as_npz, save_model
 
@@ -103,7 +103,7 @@ distr_joint["train"], distr_c["train"], distr_s["train"] = distributions_from_la
 distr_joint["val"], distr_c["val"], distr_s["val"] = distributions_from_labels(val_properties.T, val_labels, bins, nb_classes=nb_classes)
 distr_joint["test"], distr_c["test"], distr_s["test"] = distributions_from_labels(test_properties.T, test_labels, bins, nb_classes=nb_classes)
 
-save_as_npz(distr_joint, "P(s,c)", save_dir, [properties[i] for i in PROP])
-save_as_npz(distr_s, "P(s)", save_dir, [properties[i] for i in PROP])
-save_as_npz(distr_c, "P(c)", save_dir, [properties[i] for i in PROP])
-save_as_npz(bins, "bins", save_dir, [properties[i] for i in PROP], deep=False)
+save_as_npz(distr_joint, "P(s,c)", save_dir, [properties[i] for i in TRAIN_PROP + TEST_PROP])
+save_as_npz(distr_s, "P(s)", save_dir, [properties[i] for i in TRAIN_PROP + TEST_PROP])
+save_as_npz(distr_c, "P(c)", save_dir, [properties[i] for i in TRAIN_PROP + TEST_PROP])
+save_as_npz(bins, "bins", save_dir, [properties[i] for i in TRAIN_PROP + TEST_PROP], deep=False)

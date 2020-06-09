@@ -66,14 +66,14 @@ class AgglomerativeRegressor(torch.nn.Module):
 
     def __init__(self, nb_clusters, in_size1, in_size2, out_size):
 
-        super(LinearRegressor, self).__init__()
+        super(AgglomerativeRegressor, self).__init__()
 
         # init clustering (x2 -> z)
         self.nb_clusters = nb_clusters
         self.clustering = AgglomerativeClustering(n_clusters=nb_clusters)
 
         # init predictor ( [x1;z]-> y )
-        self.predictor = LinearRegression(in_size1 + 1 + nb_clusters, out_size)
+        self.predictor = LinearRegression(in_size1 + 2, out_size)
 
     def eval(self):
         self.predictor.eval()
@@ -83,8 +83,8 @@ class AgglomerativeRegressor(torch.nn.Module):
         # add offset
         x1 = torch.cat((X1, torch.ones((len(X1), 1))), 1)
         x2 = X2.numpy()
-
-        z = torch.from_numpy(AgglomerativeClustering.fit_predict(x2)[:, None])
+        
+        z = torch.from_numpy(self.clustering.fit_predict(x2)[:, None]).float()
 
         xz = torch.cat((x1, z), 1)
 
@@ -103,7 +103,7 @@ class AgglomerativeRegressor(torch.nn.Module):
 
         x2 = X2.numpy()
 
-        return AgglomerativeClustering.fit_predict(x2)
+        return self.clustering.fit_predict(x2)
 
     def train(self):
         self.predictor.train()
