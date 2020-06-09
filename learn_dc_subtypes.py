@@ -14,7 +14,7 @@ dataset_path = "./datasets/cumulo-dc/"
 TRAIN_PROP = [4]
 TEST_PROP = [0, 8]
 
-bins = compute_bins([[0, 1, 51], [0, 1, 51], [0, 1, 51]])
+bins = compute_bins([[-1, 1, 51], [-1, 1, 51], [-1, 1, 51]])
 
 TREE_DEPTH = 2
 LR = 1e-3

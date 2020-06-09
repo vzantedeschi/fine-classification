@@ -26,14 +26,14 @@ class Normalizer(object):
 class Scaler(object):
 
     def __init__(self, min_values, max_values, dim=(256, 256)):
-        """ scales to [0,1] range """
+        """ scales to [-1, 1] range """
 
         self.min_values = np.repeat(min_values, np.prod(dim)).reshape(len(min_values), *dim)
         self.max_values = np.repeat(max_values, np.prod(dim)).reshape(len(max_values), *dim)
 
     def __call__(self, image):
 
-        return (image - self.min_values) / (self.max_values - self.min_values)
+        return (image - self.min_values) * 2 / (self.max_values - self.min_values) - 1
 
 def compute_normalizer(dataloader, dim=13):
 
