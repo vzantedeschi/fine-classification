@@ -14,15 +14,15 @@ dataset_path = "./datasets/cumulo-dc/"
 TRAIN_PROP = [0, 4]
 TEST_PROP = [8]
 
-bins = compute_bins([[0, 1, 51], [0, 1, 51], [0, 1, 51]])
+bins = compute_bins([[-1, 1, 51], [-1, 1, 51], [-1, 1, 51]])
 
 TREE_DEPTH = 2
 LR = 1e-3
-EPOCHS = 30
+EPOCHS = 100
 nb_classes = 2**TREE_DEPTH
 
-PRUNING = True
-REG = 10
+REG = 0
+PRUNING = REG > 0
 
 save_dir = "./results/dc-subtypes/LWP-CTP/latent-trees/depth={}/reg={}/".format(TREE_DEPTH, REG)
 
