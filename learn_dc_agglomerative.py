@@ -9,7 +9,7 @@ from src.optimization import evaluate, train_stochastic
 from src.property_analysis import distributions_from_labels, compute_bins
 from src.utils import load_model, save_as_npz, save_model
 
-dataset_path = "./datasets/cumulo-dc/"
+dataset_path = "../datasets/cumulo-dc/"
 
 # LWP = 0, COT = 1, CTP = 4, ST = 8
 TRAIN_PROP = [0, 4]
@@ -17,12 +17,12 @@ TEST_PROP = [8]
 
 bins = compute_bins([[-1, 1, 51], [-1, 1, 51], [-1, 1, 51]])
 
-TREE_DEPTH = 2
+TREE_DEPTH = 1
 LR = 1e-3
-EPOCHS = 2
+EPOCHS = 20
 nb_classes = 2**TREE_DEPTH
 
-save_dir = "./results/dc-subtypes/agglomerative/nb_classes={}/".format(nb_classes)
+save_dir = "./results/dc-subtypes/rad-LWP-CTP/agglomerative/nb_classes={}/".format(nb_classes)
 
 SEED = 2020
 np.random.seed(SEED)
@@ -46,9 +46,9 @@ val_size = nb_tiles - train_size - test_size
 train_dataset, val_dataset, test_dataset = random_split(dataset, [train_size, val_size, test_size])
 
 # data loaders
-trainloader = DataLoader(train_dataset, batch_size=2, shuffle=True, collate_fn=class_pixel_collate)
-valloader = DataLoader(val_dataset, batch_size=2, shuffle=False, collate_fn=class_pixel_collate)
-testloader = DataLoader(test_dataset, batch_size=2, shuffle=False, collate_fn=class_pixel_collate)
+trainloader = DataLoader(train_dataset, batch_size=1, shuffle=True, collate_fn=class_pixel_collate)
+valloader = DataLoader(val_dataset, batch_size=1, shuffle=False, collate_fn=class_pixel_collate)
+testloader = DataLoader(test_dataset, batch_size=1, shuffle=False, collate_fn=class_pixel_collate)
 
 # 13 features, train properties => test properties
 model = AgglomerativeRegressor(nb_classes, 13, len(TRAIN_PROP), len(TEST_PROP))
@@ -64,7 +64,7 @@ monitor = MonitorTree(False, save_dir)
 
 state = {
     'tile-size': 1,
-    'batch-size': 2,
+    'batch-size': 1,
     'loss-function': 'MSE',
     'learning-rate': LR,
     'seed': SEED,

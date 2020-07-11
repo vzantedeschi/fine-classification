@@ -9,7 +9,7 @@ from src.optimization import evaluate, train_stochastic
 from src.property_analysis import distributions_from_labels, compute_bins
 from src.utils import load_model, save_as_npz, save_model
 
-dataset_path = "./datasets/cumulo-dc/"
+dataset_path = "../datasets/cumulo-dc/"
 
 # LWP = 0, COT = 1, CTP = 4, ST = 8
 TRAIN_PROP = [0, 4]
@@ -19,13 +19,14 @@ bins = compute_bins([[-1, 1, 51], [-1, 1, 51], [-1, 1, 51]])
 
 TREE_DEPTH = 2
 LR = 1e-3
-EPOCHS = 100
+EPOCHS = 200
 nb_classes = 2**TREE_DEPTH
 
 REG = 0
 PRUNING = REG > 0
 
-save_dir = "./results/dc-subtypes/LWP-CTP/latent-trees/depth={}/reg={}/".format(TREE_DEPTH, REG)
+tree_seed = 1225
+save_dir = "./results/dc-subtypes/rad-LWP-CTP/LT/depth={}/reg={}/seed={}/".format(TREE_DEPTH, REG, tree_seed)
 
 SEED = 2020
 np.random.seed(SEED)
@@ -52,6 +53,10 @@ train_dataset, val_dataset, test_dataset = random_split(dataset, [train_size, va
 trainloader = DataLoader(train_dataset, batch_size=2, shuffle=True, collate_fn=class_pixel_collate)
 valloader = DataLoader(val_dataset, batch_size=2, shuffle=False, collate_fn=class_pixel_collate)
 testloader = DataLoader(test_dataset, batch_size=2, shuffle=False, collate_fn=class_pixel_collate)
+
+SEED = tree_seed
+np.random.seed(SEED)
+torch.manual_seed(SEED)
 
 # 13 features, train properties => test properties
 model = LinearRegressor(TREE_DEPTH, 13, len(TRAIN_PROP), len(TEST_PROP), pruned=PRUNING)

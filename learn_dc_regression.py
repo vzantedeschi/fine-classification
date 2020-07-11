@@ -2,13 +2,14 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader, random_split
 
+from src.baselines import NonLinearRegression
 from src.datasets import class_pixel_collate, compute_scaler, CumuloDataset, Scaler, property_ranges, properties
 from src.monitors import MonitorTree
-from src.optimization import NonLinearRegression, evaluate, train_stochastic
+from src.optimization import evaluate, train_stochastic
 from src.property_analysis import distributions_from_labels, compute_bins
 from src.utils import load_model, save_as_npz, save_model
 
-dataset_path = "./datasets/cumulo-dc/"
+dataset_path = "../datasets/cumulo-dc/"
 
 # LWP = 0, COT = 1, CTP = 4, ST = 8
 TRAIN_PROP = [0, 4]
@@ -16,10 +17,10 @@ TEST_PROP = [8]
 
 bins = compute_bins([[-1, 1, 51], [-1, 1, 51], [-1, 1, 51]])
 
-LR = 1e-3
-EPOCHS = 100
+LR = 1e-4
+EPOCHS = 200
 
-save_dir = "./results/dc-subtypes/rad-LWP-CTP/nonlin-regression/"
+save_dir = "./results/dc-subtypes/rad-LWP-CTP/nonlin-regression/lr={}/".format(LR)
 
 SEED = 2020
 np.random.seed(SEED)
