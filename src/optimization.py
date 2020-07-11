@@ -6,7 +6,7 @@ import torch
 
 from src.monitors import MonitorTree
 
-def train_stochastic(dataloader, model, optimizer, criterion, epoch, pruning=True, reg=1, norm=float("inf"), monitor=None):
+def train_stochastic(dataloader, model, optimizer, criterion, epoch, reg=1, norm=float("inf"), monitor=None):
 
     model.train()
 
@@ -24,7 +24,7 @@ def train_stochastic(dataloader, model, optimizer, criterion, epoch, pruning=Tru
 
         loss = criterion(pred, batch["test_properties"])
 
-        if pruning:
+        if reg > 0:
 
             obj = loss / nb_instances + reg * torch.norm(model.sparseMAP.eta, p=norm)
             train_obj += obj.detach().numpy()
@@ -43,7 +43,7 @@ def train_stochastic(dataloader, model, optimizer, criterion, epoch, pruning=Tru
         optimizer.step()
 
         if monitor:
-            monitor.write(model, i + last_iter, check_pruning=False, train={"Loss": loss.detach() / nb_instances})
+            monitor.write(model, i + last_iter, check_pruning=(reg > 0), train={"Loss": loss.detach() / nb_instances})
 
 def evaluate(dataloader, model, criterion, epoch=None, monitor=None, classify=False):
 

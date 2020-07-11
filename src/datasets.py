@@ -177,7 +177,7 @@ class CumuloDataset(Dataset):
                 test_properties = self.test_prop_preproc(test_properties)
 
         else:
-            test_properties = train_properties
+            test_properties = properties
 
         return {"filename": filename, "radiances": radiances, "properties": train_properties, "test_properties": test_properties, "rois": rois, "labels": labels}
 

@@ -22,7 +22,7 @@ LR = 1e-3
 EPOCHS = 200
 nb_classes = 2**TREE_DEPTH
 
-REG = 0
+REG = 10
 PRUNING = REG > 0
 
 tree_seed = 1225
@@ -87,7 +87,7 @@ state = {
 best_val_loss = float("inf")
 best_e = -1
 for e in range(EPOCHS):
-    train_stochastic(trainloader, model, optimizer, criterion, epoch=e, pruning=PRUNING, reg=REG, monitor=monitor)
+    train_stochastic(trainloader, model, optimizer, criterion, epoch=e, reg=REG, monitor=monitor)
 
     val_loss = evaluate(valloader, model, criterion, epoch=e, monitor=monitor)
     print("Epoch %i: validation loss = %f\n" % (e, val_loss))
